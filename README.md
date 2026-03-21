@@ -5,10 +5,13 @@ This script cross-compiles [UPX (Ultimate Packer for eXecutables)](https://githu
 ## Features
 
 - **Automated toolchain download**: Downloads and extracts only the needed musl-cross toolchains
+- **wget / curl support**: Uses `wget` if available, falls back to `curl` automatically
 - **Static linking**: Produces fully static binaries that run on any Linux system
 - **Multi-architecture support**: Easily build for multiple architectures in one run
 - **Parallel builds**: Uses all available CPU cores
 - **Incremental builds**: Reuses downloaded toolchains and source code
+- **Resume support**: Skip already-built architectures with `--resume`
+- **Architecture selection**: Pass specific architecture triples as arguments
 - **Error handling**: Comprehensive error checking and reporting
 
 ## Requirements
@@ -16,8 +19,8 @@ This script cross-compiles [UPX (Ultimate Packer for eXecutables)](https://githu
 - `git` - for cloning UPX source
 - `cmake` 3.13+ - UPX build system
 - `make` - GNU make
-- `wget` - for downloading toolchains
-- `tar`, `xz` - for extracting toolchains
+- `wget` or `curl` - for downloading toolchains
+- `tar` - for extracting toolchains
 - Linux host system (x86_64 recommended)
 
 ## Quick Start
@@ -30,15 +33,36 @@ chmod +x build-upx.sh
 ./build-upx.sh
 ```
 
+## Usage
+
+```
+Usage: build-upx.sh [OPTIONS] [ARCH_TRIPLE ...]
+
+Options:
+    --resume         Skip architectures that already have a built output binary
+    --work-dir DIR   Override the work directory (default: ./upx-build)
+    --help           Show this help message
+
+Arguments:
+    ARCH_TRIPLE      One or more architecture triples to build
+                     (e.g. i686-unknown-linux-musl armv7-unknown-linux-musleabihf)
+                     If none given, all enabled architectures in ARCHITECTURES[] are built.
+
+Examples:
+    ./build-upx.sh                                      # Build all enabled architectures
+    ./build-upx.sh i686-unknown-linux-musl              # Build only i686
+    ./build-upx.sh --resume                             # Build, skipping already-built targets
+    ./build-upx.sh --work-dir /tmp/upx-build            # Use a custom work directory
+```
+
 ## Default Architectures
 
 By default, the script builds for these architectures:
-- `x86_64-unknown-linux-musl` - 64-bit Intel/AMD
 - `i686-unknown-linux-musl` - 32-bit Intel/AMD
-- `aarch64-unknown-linux-musl` - 64-bit ARM (ARM64)
 - `armv7-unknown-linux-musleabihf` - 32-bit ARM v7 with hard float
-- `riscv64-unknown-linux-musl` - 64-bit RISC-V
-- `powerpc64le-unknown-linux-musl` - 64-bit PowerPC (little-endian)
+- `mips-unknown-linux-muslsf` - MIPS soft-float
+
+To enable additional architectures, uncomment or add entries in the `ARCHITECTURES` array.
 
 ## Available Architectures
 
@@ -107,7 +131,7 @@ Edit the `ARCHITECTURES` array in the script. Format is `"triple:cmake_processor
 
 ```bash
 declare -a ARCHITECTURES=(
-    "x86_64-unknown-linux-musl:x86_64"
+    "i686-unknown-linux-musl:i686"
     "aarch64-unknown-linux-musl:aarch64"
     # Add more here...
 )
@@ -117,6 +141,11 @@ declare -a ARCHITECTURES=(
 
 ```bash
 WORK_DIR="${PWD}/upx-build"  # Change this to your preferred location
+```
+
+Or use the `--work-dir` option at runtime:
+```bash
+./build-upx.sh --work-dir /path/to/dir
 ```
 
 ### Optimization Flags
@@ -132,8 +161,8 @@ set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -O3")
 ## Output
 
 Built binaries are placed in `./upx-build/output/` with names like:
-- `upx-x86_64-unknown-linux-musl`
-- `upx-aarch64-unknown-linux-musl`
+- `upx-i686-unknown-linux-musl`
+- `upx-armv7-unknown-linux-musleabihf`
 - etc.
 
 All binaries are:
@@ -147,16 +176,16 @@ All binaries are:
 upx-build/
 ├── upx/              # Cloned UPX source
 ├── toolchains/       # Downloaded musl-cross toolchains
-│   ├── x86_64-unknown-linux-musl/
-│   ├── aarch64-unknown-linux-musl/
+│   ├── i686-unknown-linux-musl/
+│   ├── armv7-unknown-linux-musleabihf/
 │   └── ...
 ├── builds/           # Build directories (one per arch)
-│   ├── x86_64-unknown-linux-musl/
-│   ├── aarch64-unknown-linux-musl/
+│   ├── i686-unknown-linux-musl/
+│   ├── armv7-unknown-linux-musleabihf/
 │   └── ...
 └── output/           # Final binaries
-    ├── upx-x86_64-unknown-linux-musl
-    ├── upx-aarch64-unknown-linux-musl
+    ├── upx-i686-unknown-linux-musl
+    ├── upx-armv7-unknown-linux-musleabihf
     └── ...
 ```
 
@@ -167,10 +196,29 @@ The script is designed to be run multiple times efficiently:
 - **Toolchains**: Downloaded once per architecture, then reused
 - **Builds**: Cleaned each time to ensure fresh builds
 
+Use `--resume` to also skip architectures whose output binary already exists:
+```bash
+./build-upx.sh --resume
+```
+
 To force a clean start:
 ```bash
 rm -rf upx-build/
 ./build-upx.sh
+```
+
+## Helper Script
+
+`upx-helper.sh` provides convenience commands for managing builds:
+
+```bash
+./upx-helper.sh clean-builds    # Clean builds but keep source and toolchains
+./upx-helper.sh clean-all       # Remove everything
+./upx-helper.sh clean-output    # Remove only output binaries
+./upx-helper.sh list-output     # Show what has been built
+./upx-helper.sh verify-static   # Verify all binaries are statically linked
+./upx-helper.sh package         # Create upx-binaries-<date>.tar.xz
+./upx-helper.sh test-binary <name>  # Test a specific binary (requires qemu-user-static)
 ```
 
 ## Build Time
@@ -230,6 +278,12 @@ chmod +x ~/upx-aarch64-unknown-linux-musl
 ./ls-compressed --help
 ```
 
+Or use the helper script with qemu-user-static:
+```bash
+sudo apt-get install qemu-user-static
+./upx-helper.sh test-binary upx-aarch64-unknown-linux-musl
+```
+
 ## License
 
 This build script is provided as-is for convenience. UPX itself is licensed under GPL v2+. See the [UPX repository](https://github.com/gfunkmonk/upx) for details.
@@ -238,4 +292,4 @@ This build script is provided as-is for convenience. UPX itself is licensed unde
 
 - UPX: https://github.com/upx/upx
 - musl-cross: https://github.com/gfunkmonk/musl-cross
-- gfunkmonk's forks used in this script# build-upx
+- gfunkmonk's forks used in this script

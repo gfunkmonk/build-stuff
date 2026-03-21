@@ -83,21 +83,31 @@ list_output() {
         echo "No output directory found. Run build script first."
         exit 1
     fi
-    
-    local count
-    count=$(find "$WORK_DIR/output" -type f -name "upx-*" | wc -l)
-    
+
+    local count=0
+    local total_size
+    local binary
+
+    for binary in "$WORK_DIR/output"/upx-*; do
+        [[ -f "$binary" ]] || continue
+        count=$((count + 1))
+    done
+
     if [[ $count -eq 0 ]]; then
         echo "No binaries found in output directory."
         exit 1
     fi
-    
+
     echo "Built binaries ($count):"
     echo
-    ls -lh "$WORK_DIR/output" | grep "^-" | awk '{print $5 "\t" $9}'
-    
+    for binary in "$WORK_DIR/output"/upx-*; do
+        [[ -f "$binary" ]] || continue
+        local size
+        size=$(du -h "$binary" | cut -f1)
+        printf "%s\t%s\n" "$size" "$(basename "$binary")"
+    done
+
     echo
-    local total_size
     total_size=$(du -sh "$WORK_DIR/output" | cut -f1)
     echo "Total size: $total_size"
 }
@@ -143,55 +153,57 @@ verify_static() {
 
 test_binary() {
     local binary_name=${1:-}
-    
+
     if [[ -z "$binary_name" ]]; then
         echo "Usage: $0 test-binary <binary-name>"
         echo "Example: $0 test-binary upx-aarch64-unknown-linux-musl"
         exit 1
     fi
-    
+
     local binary_path="$WORK_DIR/output/$binary_name"
-    
+
     if [[ ! -f "$binary_path" ]]; then
         echo "Error: Binary not found: $binary_path"
         exit 1
     fi
-    
-    if ! command -v qemu-user-static &>/dev/null && ! command -v qemu-aarch64-static &>/dev/null; then
-        echo "Error: qemu-user-static not installed"
-        echo "Install with: sudo apt-get install qemu-user-static"
-        exit 1
-    fi
-    
+
     echo "Testing binary: $binary_name"
     echo
-    
-    # Try to determine architecture from filename
-    local arch=""
-    if [[ "$binary_name" =~ aarch64 ]]; then
-        arch="qemu-aarch64-static"
-    elif [[ "$binary_name" =~ armv7 ]] || [[ "$binary_name" =~ armv6 ]]; then
-        arch="qemu-arm-static"
-    elif [[ "$binary_name" =~ riscv64 ]]; then
-        arch="qemu-riscv64-static"
-    elif [[ "$binary_name" =~ mips64el ]]; then
-        arch="qemu-mips64el-static"
-    elif [[ "$binary_name" =~ mipsel ]]; then
-        arch="qemu-mipsel-static"
-    elif [[ "$binary_name" =~ powerpc64le ]]; then
-        arch="qemu-ppc64le-static"
-    else
-        echo "Warning: Could not determine qemu emulator for this architecture"
-        echo "Trying native execution..."
-        arch=""
+
+    # Try to determine architecture from filename and pick the right qemu binary
+    local qemu_bin=""
+    if   [[ "$binary_name" =~ aarch64 ]];           then qemu_bin="qemu-aarch64-static"
+    elif [[ "$binary_name" =~ armv[5-7] ]];          then qemu_bin="qemu-arm-static"
+    elif [[ "$binary_name" =~ riscv64 ]];            then qemu_bin="qemu-riscv64-static"
+    elif [[ "$binary_name" =~ riscv32 ]];            then qemu_bin="qemu-riscv32-static"
+    elif [[ "$binary_name" =~ mips64el ]];           then qemu_bin="qemu-mips64el-static"
+    elif [[ "$binary_name" =~ mips64 ]];             then qemu_bin="qemu-mips64-static"
+    elif [[ "$binary_name" =~ mipsel ]];             then qemu_bin="qemu-mipsel-static"
+    elif [[ "$binary_name" =~ mips ]];               then qemu_bin="qemu-mips-static"
+    elif [[ "$binary_name" =~ powerpc64le ]];        then qemu_bin="qemu-ppc64le-static"
+    elif [[ "$binary_name" =~ powerpc64 ]];          then qemu_bin="qemu-ppc64-static"
+    elif [[ "$binary_name" =~ powerpc ]];            then qemu_bin="qemu-ppc-static"
+    elif [[ "$binary_name" =~ s390x ]];              then qemu_bin="qemu-s390x-static"
+    elif [[ "$binary_name" =~ loongarch64 ]];        then qemu_bin="qemu-loongarch64-static"
+    elif [[ "$binary_name" =~ m68k ]];               then qemu_bin="qemu-m68k-static"
+    elif [[ "$binary_name" =~ microblazeel ]];       then qemu_bin="qemu-microblazeel-static"
+    elif [[ "$binary_name" =~ microblaze ]];         then qemu_bin="qemu-microblaze-static"
+    elif [[ "$binary_name" =~ or1k ]];               then qemu_bin="qemu-or1k-static"
+    elif [[ "$binary_name" =~ sh4 ]];                then qemu_bin="qemu-sh4-static"
     fi
-    
-    if [[ -n "$arch" ]] && command -v "$arch" &>/dev/null; then
-        echo "Using $arch for emulation"
-        "$arch" "$binary_path" --version
-    else
+
+    if [[ -n "$qemu_bin" ]] && command -v "$qemu_bin" &>/dev/null; then
+        echo "Using $qemu_bin for emulation"
+        "$qemu_bin" "$binary_path" --version
+    elif [[ -z "$qemu_bin" ]]; then
+        # Native architecture (e.g. x86_64, i686) or unknown — try directly
         echo "Trying native execution..."
         "$binary_path" --version
+    else
+        echo "Warning: qemu emulator '$qemu_bin' not found for this architecture"
+        echo "Install qemu-user-static to test cross-architecture binaries"
+        echo "  e.g.: sudo apt-get install qemu-user-static"
+        exit 1
     fi
 }
 
@@ -209,7 +221,8 @@ package_binaries() {
         exit 1
     fi
     
-    local tarball="upx-binaries-$(date +%Y%m%d).tar.xz"
+    local tarball
+    tarball="upx-binaries-$(date +%Y%m%d).tar.xz"
     
     echo "Creating package: $tarball"
     echo "Including $count binaries..."
