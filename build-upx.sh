@@ -4,6 +4,14 @@
 # Source: https://github.com/gfunkmonk/upx
 # Toolchains: https://github.com/gfunkmonk/musl-cross/releases/tag/eastwood
 #
+# Usage: ./build-upx.sh [OPTIONS] [ARCH_TRIPLE ...]
+#   Options:
+#     --resume         Skip architectures that already have a built output binary
+#     --work-dir DIR   Override the work directory (default: ./upx-build)
+#     --help           Show this help message
+#   Arguments:
+#     ARCH_TRIPLE      One or more architecture triples to build (e.g. i686-unknown-linux-musl)
+#                      If none given, all enabled architectures in ARCHITECTURES[] are built.
 
 set -euo pipefail
 
@@ -16,6 +24,9 @@ TOOLCHAIN_DIR="${WORK_DIR}/toolchains"
 SOURCE_DIR="${WORK_DIR}/upx"
 BUILD_BASE="${WORK_DIR}/builds"
 OUTPUT_DIR="${WORK_DIR}/output"
+
+# Runtime flags
+RESUME=false
 
 # Architectures to build (add/remove as needed)
 # Format: "triple:cmake_system_processor"
@@ -82,7 +93,12 @@ die() {
 check_dependencies() {
     local missing=()
 
-    for cmd in git cmake make wget tar xz; do
+    # wget or curl is required for downloading toolchains
+    if ! command -v wget &>/dev/null && ! command -v curl &>/dev/null; then
+        missing+=("wget or curl")
+    fi
+
+    for cmd in git cmake make tar; do
         if ! command -v "$cmd" &>/dev/null; then
             missing+=("$cmd")
         fi
@@ -92,10 +108,13 @@ check_dependencies() {
         die "Missing dependencies: ${missing[*]}"
     fi
 
-    # Check CMake version
+    # Check CMake version (portable: avoid grep -P which needs PCRE)
     local cmake_version
-    cmake_version=$(cmake --version | head -n1 | grep -oP '\d+\.\d+' || echo "0.0")
-    if ! awk -v ver="$cmake_version" 'BEGIN { exit (ver < 3.13) }'; then
+    cmake_version=$(cmake --version | head -n1 | awk '{print $3}')
+    local cmake_major cmake_minor
+    cmake_major=$(echo "$cmake_version" | cut -d. -f1)
+    cmake_minor=$(echo "$cmake_version" | cut -d. -f2)
+    if [[ -z "$cmake_major" ]] || (( cmake_major < 3 )) || (( cmake_major == 3 && cmake_minor < 13 )); then
         die "CMake 3.13+ required, found: $cmake_version"
     fi
 }
@@ -134,10 +153,18 @@ download_toolchain() {
     local url="${TOOLCHAIN_BASE_URL}/${tarball}"
     local tmpfile="${TOOLCHAIN_DIR}/${tarball}"
 
-    if ! wget -q --show-progress -O "$tmpfile" "$url"; then
-        log_error "Failed to download $tarball"
-        rm -f "$tmpfile"
-        return 1
+    if command -v wget &>/dev/null; then
+        if ! wget -q --show-progress -O "$tmpfile" "$url"; then
+            log_error "Failed to download $tarball"
+            rm -f "$tmpfile"
+            return 1
+        fi
+    else
+        if ! curl -fL --progress-bar -o "$tmpfile" "$url"; then
+            log_error "Failed to download $tarball"
+            rm -f "$tmpfile"
+            return 1
+        fi
     fi
 
     log_info "Extracting toolchain: $triple"
@@ -156,6 +183,12 @@ build_upx() {
     local arch_spec=$1
     local triple="${arch_spec%%:*}"
     local cmake_proc="${arch_spec##*:}"
+
+    # --resume: skip if output binary already exists
+    if $RESUME && [[ -f "${OUTPUT_DIR}/upx-${triple}" ]]; then
+        log_info "Skipping $triple (output already exists, --resume set)"
+        return 0
+    fi
 
     log_info "Building UPX for $triple"
 
@@ -245,17 +278,100 @@ EOF
 
     # Verify it's actually static
     if command -v file &>/dev/null; then
-        file "$output_file" | grep -q "statically linked" && \
-            log_info "Confirmed: statically linked" || \
+        if file "$output_file" | grep -q "statically linked"; then
+            log_info "Confirmed: statically linked"
+        else
             log_warn "Warning: may not be statically linked"
+        fi
     fi
 
     return 0
 }
 
+usage() {
+    cat << EOF
+UPX Cross-Compilation Build Script
+
+Usage: $(basename "$0") [OPTIONS] [ARCH_TRIPLE ...]
+
+Options:
+    --resume         Skip architectures that already have a built output binary
+    --work-dir DIR   Override the work directory (default: ./upx-build)
+    --help           Show this help message
+
+Arguments:
+    ARCH_TRIPLE      One or more architecture triples to build
+                     (e.g. i686-unknown-linux-musl armv7-unknown-linux-musleabihf)
+                     If none given, all enabled architectures in ARCHITECTURES[] are built.
+
+Examples:
+    $(basename "$0")                                      # Build all enabled architectures
+    $(basename "$0") i686-unknown-linux-musl              # Build only i686
+    $(basename "$0") --resume                             # Build, skipping already-built targets
+    $(basename "$0") --work-dir /tmp/upx-build            # Use a custom work directory
+EOF
+    exit 0
+}
+
 main() {
     log_info "UPX Cross-Compilation Build Script"
     log_info "===================================="
+
+    # Parse arguments
+    local -a requested_triples=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --resume)
+                RESUME=true
+                shift
+                ;;
+            --work-dir)
+                [[ $# -lt 2 ]] && die "--work-dir requires an argument"
+                WORK_DIR="$2"
+                TOOLCHAIN_DIR="${WORK_DIR}/toolchains"
+                SOURCE_DIR="${WORK_DIR}/upx"
+                BUILD_BASE="${WORK_DIR}/builds"
+                OUTPUT_DIR="${WORK_DIR}/output"
+                shift 2
+                ;;
+            --help|-h)
+                usage
+                ;;
+            -*)
+                die "Unknown option: $1  (use --help for usage)"
+                ;;
+            *)
+                requested_triples+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    # Build the list of arch_specs to process
+    local -a build_list=()
+    if [[ ${#requested_triples[@]} -gt 0 ]]; then
+        # User specified explicit triples on the command line
+        for triple in "${requested_triples[@]}"; do
+            # Find the matching arch_spec in ARCHITECTURES (with cmake_proc suffix)
+            local found=false
+            for arch_spec in "${ARCHITECTURES[@]}"; do
+                if [[ "${arch_spec%%:*}" == "$triple" ]]; then
+                    build_list+=("$arch_spec")
+                    found=true
+                    break
+                fi
+            done
+            if ! $found; then
+                # Not in the predefined list — derive cmake processor from the first
+                # component of the triple (e.g. "i686" from "i686-unknown-linux-musl")
+                local inferred_proc="${triple%%-*}"
+                log_warn "Triple '$triple' not in predefined ARCHITECTURES list; inferring cmake processor as '$inferred_proc'"
+                build_list+=("${triple}:${inferred_proc}")
+            fi
+        done
+    else
+        build_list=("${ARCHITECTURES[@]}")
+    fi
 
     check_dependencies
     setup_directories
@@ -265,7 +381,7 @@ main() {
     local failed=0
     local -a failed_archs=()
 
-    for arch_spec in "${ARCHITECTURES[@]}"; do
+    for arch_spec in "${build_list[@]}"; do
         local triple="${arch_spec%%:*}"
 
         if build_upx "$arch_spec"; then
