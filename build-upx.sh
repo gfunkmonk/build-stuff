@@ -62,7 +62,7 @@ declare -a ARCHITECTURES=(
 #    "m68k-unknown-linux-musl:m68k"
 #    "microblaze-xilinx-linux-musl:microblaze"
 #    "microblazeel-xilinx-linux-musl:microblazeel"
-#    "or1k-unknown-linux-musl:or1k"
+    "or1k-unknown-linux-musl:or1k"
 #    "s390x-ibm-linux-musl:s390x"
 #    "sh4-multilib-linux-musl:sh4"
 )
