@@ -1,0 +1,5 @@
+# Build output directory created by build-upx.sh
+upx-build/
+
+# Packaged binaries created by upx-helper.sh package command
+upx-binaries-*.tar.xz
