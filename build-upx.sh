@@ -127,7 +127,7 @@ sanitize_path() {
     path="${path%/}"
     
     # Check for directory traversal attempts
-    if [[ "$path" == *"/../"* ]] || [[ "$path" == "../"* ]]; then
+    if [[ "$path" == *"/../"* ]] || [[ "$path" == "../"* ]] || [[ "$path" == ".." ]]; then
         die "Invalid path (directory traversal detected): $path"
     fi
     
@@ -594,6 +594,7 @@ parse_args() {
 main() {
     local total_start
     total_start=$(date +%s)
+    declare -a REQUESTED_TRIPLES=()
     
     log_info "🚀 UPX Cross-Compiler $(date)"
     log_info "======================================"
@@ -635,9 +636,8 @@ main() {
                     fi
                 done
                 if ! $found; then
-                    # Infer processor from triple
-                    local inferred_cpu="${triple##*-}"
-                    inferred_cpu="${inferred_cpu%%-*}"
+                    # Infer processor from triple (first component, e.g. x86_64 from x86_64-unknown-linux-musl)
+                    local inferred_cpu="${triple%%-*}"
                     build_list+=("$triple:$inferred_cpu")
                     log_warn "Inferring processor for $triple"
                 fi
@@ -663,7 +663,8 @@ main() {
         fi
     done
 
-    local duration=$(( $(date +%s) - total_start ))
+    local duration
+    duration=$(( $(date +%s) - total_start ))
     log_info "======================================"
     printf '📊 SUMMARY: %d success, %d failed, %d skipped, %d total (%ds)\n' \
         "$success" "$failed" "$skipped" "$((success+failed+skipped))" "$duration"

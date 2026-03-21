@@ -76,6 +76,7 @@ clean_cache() {
     if [[ -d "$WORK_DIR/toolchains" ]]; then
         echo "Removing downloaded toolchain tarballs..."
         find "$WORK_DIR/toolchains" -name "*.tar.xz" -delete
+        find "$WORK_DIR/toolchains" -name "*.tar.xz.partial" -delete
         echo "Cache cleaned."
     else
         echo "No cache found."
@@ -88,24 +89,22 @@ list_output() {
         exit 1
     fi
 
-    local count=0
     local total_size
-    local binary
+    local -a binaries=()
 
     for binary in "$WORK_DIR/output"/upx-*; do
         [[ -f "$binary" ]] || continue
-        count=$((count + 1))
+        binaries+=("$binary")
     done
 
-    if [[ $count -eq 0 ]]; then
+    if [[ ${#binaries[@]} -eq 0 ]]; then
         echo "No binaries found in output directory."
         exit 1
     fi
 
-    echo "Built binaries ($count):"
+    echo "Built binaries (${#binaries[@]}):"
     echo
-    for binary in "$WORK_DIR/output"/upx-*; do
-        [[ -f "$binary" ]] || continue
+    for binary in "${binaries[@]}"; do
         local size
         size=$(du -h "$binary" | cut -f1)
         printf "%s\t%s\n" "$size" "$(basename "$binary")"
