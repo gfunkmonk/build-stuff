@@ -5,35 +5,36 @@
 # Toolchains: https://github.com/gfunkmonk/musl-cross/releases/tag/eastwood
 #
 # Usage: ./build-upx.sh [OPTIONS] [ARCH_TRIPLE ...]
-#   Options:
-#     --resume         Skip architectures that already have a built output binary
-#     --work-dir DIR   Override the work directory (default: ./upx-build)
-#     --help           Show this help message
-#   Arguments:
-#     ARCH_TRIPLE      One or more architecture triples to build (e.g. i686-unknown-linux-musl)
-#                      If none given, all enabled architectures in ARCHITECTURES[] are built.
 
 set -euo pipefail
 
-# Configuration
-UPX_REPO="https://github.com/gfunkmonk/upx.git"
-UPX_BRANCH="devel"
-TOOLCHAIN_BASE_URL="https://github.com/gfunkmonk/musl-cross/releases/download/eastwood"
-WORK_DIR="${PWD}/upx-build"
-TOOLCHAIN_DIR="${WORK_DIR}/toolchains"
-SOURCE_DIR="${WORK_DIR}/upx"
-BUILD_BASE="${WORK_DIR}/builds"
-OUTPUT_DIR="${WORK_DIR}/output"
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
 
-# Runtime flags
+readonly UPX_REPO="https://github.com/gfunkmonk/upx.git"
+readonly UPX_BRANCH="devel"
+readonly TOOLCHAIN_BASE_URL="https://github.com/gfunkmonk/musl-cross/releases/download/eastwood"
+readonly DEFAULT_WORK_DIR="./upx-build"
+
+# Runtime configuration (updated by argument parsing)
+WORK_DIR=""
+TOOLCHAIN_DIR=""
+SOURCE_DIR=""
+BUILD_BASE=""
+OUTPUT_DIR=""
 RESUME=false
+CLEAN=false
+KEEP_TOOLCHAIN=false
+PARALLEL_JOBS=""
+DRY_RUN=false
+VERBOSE=false
 
-# Architectures to build (add/remove as needed)
-# Format: "triple:cmake_system_processor"
+# Architectures to build (triple:cmake_system_processor)
 #
 # Uncomment to add more architectures
-declare -a ARCHITECTURES=(
-#    "i386-unknown-linux-musl:i386"
+readonly -a ARCHITECTURES=(
+    "i386-unknown-linux-musl:i386"
 #    "i486-unknown-linux-musl:i486"
 #    "i586-unknown-linux-musl:i586"
     "i686-unknown-linux-musl:i686"
@@ -68,10 +69,16 @@ declare -a ARCHITECTURES=(
 )
 
 # Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly MAGENTA='\033[0;35m'
+readonly NC='\033[0m'
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
 
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $*"
@@ -85,327 +92,462 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $*" >&2
 }
 
+log_debug() {
+    if $VERBOSE; then
+        echo -e "${BLUE}[DEBUG]${NC} $*"
+    fi
+}
+
+log_dryrun() {
+    echo -e "${MAGENTA}[DRYRUN]${NC} $*"
+}
+
 die() {
     log_error "$@"
     exit 1
 }
 
+get_nproc() {
+    if command -v nproc >/dev/null 2>&1; then
+        nproc 2>/dev/null || echo 2
+    elif command -v sysctl >/dev/null 2>&1; then
+        sysctl -n hw.ncpu 2>/dev/null || echo 2
+    else
+        echo 2
+    fi
+}
+
+# =============================================================================
+# DEPENDENCY CHECKING
+# =============================================================================
+
 check_dependencies() {
     local missing=()
-
-    # wget or curl is required for downloading toolchains
-    if ! command -v wget &>/dev/null && ! command -v curl &>/dev/null; then
+    
+    if ! command -v git >/dev/null 2>&1; then missing+=("git"); fi
+    if ! command -v cmake >/dev/null 2>&1; then missing+=("cmake"); fi
+    if ! command -v make >/dev/null 2>&1; then missing+=("make"); fi
+    if ! command -v tar >/dev/null 2>&1; then missing+=("tar"); fi
+    if ! command -v wget >/dev/null 2>&1 && ! command -v curl >/dev/null 2>&1; then
         missing+=("wget or curl")
     fi
 
-    for cmd in git cmake make tar; do
-        if ! command -v "$cmd" &>/dev/null; then
-            missing+=("$cmd")
-        fi
-    done
-
     if [[ ${#missing[@]} -gt 0 ]]; then
-        die "Missing dependencies: ${missing[*]}"
+        die "Missing dependencies: ${missing[*]}. Please install them first."
     fi
 
-    # Check CMake version (portable: avoid grep -P which needs PCRE)
-    local cmake_version
-    cmake_version=$(cmake --version | head -n1 | awk '{print $3}')
-    local cmake_major cmake_minor
+    # Check CMake version
+    local cmake_version cmake_major cmake_minor
+    cmake_version=$(cmake --version 2>/dev/null | head -n1 | awk '{print $3}' || echo "0")
     cmake_major=$(echo "$cmake_version" | cut -d. -f1)
     cmake_minor=$(echo "$cmake_version" | cut -d. -f2)
-    if [[ -z "$cmake_major" ]] || (( cmake_major < 3 )) || (( cmake_major == 3 && cmake_minor < 13 )); then
-        die "CMake 3.13+ required, found: $cmake_version"
+    
+    if [[ $cmake_major -lt 3 ]] || { [[ $cmake_major -eq 3 ]] && [[ ${cmake_minor:-0} -lt 13 ]]; }; then
+        die "CMake 3.13+ required (found $cmake_version)"
     fi
+
+    log_info "Dependencies OK (CMake $cmake_version)"
 }
+
+# =============================================================================
+# DIRECTORY SETUP
+# =============================================================================
 
 setup_directories() {
-    log_info "Setting up directories..."
     mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
+    
+    log_info "Work directories:"
+    log_debug "  Work dir: $WORK_DIR"
+    log_debug "  Toolchains: $TOOLCHAIN_DIR"
+    log_debug "  Source: $SOURCE_DIR"
+    log_debug "  Builds: $BUILD_BASE"
+    log_debug "  Output: $OUTPUT_DIR"
+    
+    if $CLEAN; then
+        log_info "Cleaning build directories..."
+        rm -rf "$BUILD_BASE"/* "$OUTPUT_DIR"/*
+    fi
 }
 
-clone_upx() {
+# =============================================================================
+# UPX SOURCE MANAGEMENT
+# =============================================================================
+
+clone_or_update_upx() {
     if [[ -d "$SOURCE_DIR" ]]; then
-        log_info "UPX source already exists, updating..."
-        git -C "$SOURCE_DIR" fetch origin
-        git -C "$SOURCE_DIR" checkout "$UPX_BRANCH"
-        git -C "$SOURCE_DIR" pull
+        log_info "UPX source exists, updating..."
+        pushd "$SOURCE_DIR" >/dev/null
+        git fetch origin >/dev/null 2>&1 || log_warn "Failed to fetch updates"
+        git checkout "$UPX_BRANCH" >/dev/null 2>&1
+        git pull origin "$UPX_BRANCH" >/dev/null 2>&1 || log_warn "Pull failed, using existing source"
+        popd >/dev/null
     else
         log_info "Cloning UPX repository..."
-        git clone --branch "$UPX_BRANCH" "$UPX_REPO" "$SOURCE_DIR" --depth=1
+        git clone --depth=1 --branch "$UPX_BRANCH" "$UPX_REPO" "$SOURCE_DIR"
     fi
 
-    # Initialize submodules if any
-    git -C "$SOURCE_DIR" submodule update --init --recursive
+    # Update submodules
+    if [[ -f "$SOURCE_DIR/.gitmodules" ]]; then
+        log_info "Updating submodules..."
+        pushd "$SOURCE_DIR" >/dev/null
+        git submodule update --init --recursive >/dev/null 2>&1
+        popd >/dev/null
+    fi
+    
+    log_info "UPX source ready ($(git -C "$SOURCE_DIR" rev-parse --short HEAD))"
 }
+
+# =============================================================================
+# TOOLCHAIN MANAGEMENT
+# =============================================================================
 
 download_toolchain() {
     local triple=$1
     local tarball="${triple}.tar.xz"
-    local toolchain_path="${TOOLCHAIN_DIR}/${triple}"
+    local toolchain_path="$TOOLCHAIN_DIR/$triple"
 
     if [[ -d "$toolchain_path" ]]; then
-        log_info "Toolchain $triple already exists, skipping download"
+        log_debug "Toolchain $triple already exists"
+        return 0
+    fi
+
+    if $DRY_RUN; then
+        log_dryrun "Would download: $triple"
         return 0
     fi
 
     log_info "Downloading toolchain: $triple"
-    local url="${TOOLCHAIN_BASE_URL}/${tarball}"
-    local tmpfile="${TOOLCHAIN_DIR}/${tarball}"
+    local url="$TOOLCHAIN_BASE_URL/$tarball"
+    local tmpfile="$TOOLCHAIN_DIR/$tarball.partial"
 
-    if command -v wget &>/dev/null; then
-        if ! wget -q --show-progress -O "$tmpfile" "$url"; then
-            log_error "Failed to download $tarball"
+    # Download with resume capability
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --continue --show-progress -O "$tmpfile" "$url" || {
             rm -f "$tmpfile"
             return 1
-        fi
-    else
-        if ! curl -fL --progress-bar -o "$tmpfile" "$url"; then
-            log_error "Failed to download $tarball"
+        }
+    elif command -v curl >/dev/null 2>&1; then
+        curl -fL --continue-at=- --progress-bar -o "$tmpfile" "$url" || {
             rm -f "$tmpfile"
             return 1
-        fi
+        }
     fi
 
     log_info "Extracting toolchain: $triple"
     mkdir -p "$toolchain_path"
-    if ! tar -xJf "$tmpfile" -C "$toolchain_path" --strip-components=1; then
-        log_error "Failed to extract $tarball"
+    tar -xJf "$tmpfile" -C "$toolchain_path" --strip-components=1 || {
         rm -rf "$toolchain_path" "$tmpfile"
+        return 1
+    }
+
+    mv "$tmpfile" "$TOOLCHAIN_DIR/$tarball"  # Keep if requested
+    log_info "✓ Toolchain $triple ready"
+}
+
+verify_toolchain() {
+    local triple=$1
+    local toolchain_path="$TOOLCHAIN_DIR/$triple"
+    local gcc="$toolchain_path/bin/${triple}-gcc"
+
+    if [[ ! -x "$gcc" ]]; then
+        log_error "Compiler not found: $gcc"
         return 1
     fi
 
-    rm -f "$tmpfile"
-    log_info "Toolchain ready: $triple"
+    # Quick compiler test
+    if ! "$gcc" --version >/dev/null 2>&1; then
+        log_error "Compiler test failed for $triple"
+        return 1
+    fi
+    
+    log_debug "✓ Toolchain $triple verified"
+    return 0
+}
+
+# =============================================================================
+# BUILD FUNCTIONS
+# =============================================================================
+
+should_skip_build() {
+    local triple=$1
+    [[ $RESUME == true && -f "$OUTPUT_DIR/upx-$triple" ]]
 }
 
 build_upx() {
     local arch_spec=$1
-    local triple="${arch_spec%%:*}"
-    local cmake_proc="${arch_spec##*:}"
+    local triple=${arch_spec%%:*}
+    local cmake_proc=${arch_spec##*:}
 
-    # --resume: skip if output binary already exists
-    if $RESUME && [[ -f "${OUTPUT_DIR}/upx-${triple}" ]]; then
-        log_info "Skipping $triple (output already exists, --resume set)"
+    echo
+    log_info "🔨 Building UPX for $triple"
+    echo "=========================================="
+
+    if should_skip_build "$triple"; then
+        log_info "⏭️  Skipping (already built, --resume)"
         return 0
     fi
 
-    log_info "Building UPX for $triple"
-
-    # Download toolchain
-    if ! download_toolchain "$triple"; then
-        log_warn "Skipping $triple due to toolchain download failure"
-        return 1
+    if $DRY_RUN; then
+        log_dryrun "Would build $triple"
+        return 0
     fi
 
-    local toolchain_path="${TOOLCHAIN_DIR}/${triple}"
-    local build_dir="${BUILD_BASE}/${triple}"
-    local toolchain_file="${build_dir}/toolchain.cmake"
+    # Setup
+    download_toolchain "$triple" || return 1
+    verify_toolchain "$triple" || return 1
 
-    # Clean previous build
+    local toolchain_path="$TOOLCHAIN_DIR/$triple"
+    local build_dir="$BUILD_BASE/$triple"
+    local toolchain_file="$build_dir/toolchain.cmake"
+    
     rm -rf "$build_dir"
     mkdir -p "$build_dir"
 
-    # Generate CMake toolchain file
-    log_info "Generating CMake toolchain file for $triple"
+    # Generate toolchain file
+    log_debug "Generating toolchain file..."
     cat > "$toolchain_file" << EOF
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR ${cmake_proc})
+set(CMAKE_SYSTEM_PROCESSOR $cmake_proc)
 
-set(CMAKE_C_COMPILER ${toolchain_path}/bin/${triple}-gcc)
-set(CMAKE_CXX_COMPILER ${toolchain_path}/bin/${triple}-g++)
-set(CMAKE_AR ${toolchain_path}/bin/${triple}-ar)
-set(CMAKE_RANLIB ${toolchain_path}/bin/${triple}-ranlib)
-set(CMAKE_STRIP ${toolchain_path}/bin/${triple}-strip)
+set(CMAKE_C_COMPILER $toolchain_path/bin/${triple}-gcc)
+set(CMAKE_CXX_COMPILER $toolchain_path/bin/${triple}-g++)
+set(CMAKE_AR $toolchain_path/bin/${triple}-ar)
+set(CMAKE_RANLIB $toolchain_path/bin/${triple}-ranlib)
+set(CMAKE_STRIP $toolchain_path/bin/${triple}-strip)
 
-set(CMAKE_FIND_ROOT_PATH ${toolchain_path}/${triple})
+set(CMAKE_FIND_ROOT_PATH $toolchain_path/${triple})
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
-# Static linking
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,--gc-sections -static")
-set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--gc-sections -static")
+# Static linking flags
+set(CMAKE_EXE_LINKER_FLAGS "-static -Wl,--gc-sections")
+set(CMAKE_SHARED_LINKER_FLAGS "-static -Wl,--gc-sections")
 
-# Additional flags for musl
-set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector")
-set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector")
+# Optimization flags
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
 EOF
 
-    # Configure with CMake
-    log_info "Configuring CMake for $triple"
+    # Configure
+    log_info "Configuring CMake..."
     if ! cmake -S "$SOURCE_DIR" -B "$build_dir" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_DISABLE_WSTRICT=ON \
         -DUSE_STRICT_DEFAULTS=OFF \
-        -DUPX_CONFIG_REQUIRE_THREADS=ON \
-        -DCMAKE_VERBOSE_MAKEFILE=OFF; then
-        log_error "CMake configuration failed for $triple"
+        -DUPX_CONFIG_REQUIRE_THREADS=ON; then
+        log_error "❌ CMake failed for $triple"
         return 1
     fi
 
     # Build
-    log_info "Compiling UPX for $triple"
-    if ! cmake --build "$build_dir" --parallel "$(nproc 2>/dev/null || echo 2)"; then
-        log_error "Build failed for $triple"
+    local jobs=${PARALLEL_JOBS:-$(get_nproc)}
+    log_info "Building ($jobs jobs)..."
+    if ! cmake --build "$build_dir" --parallel "$jobs"; then
+        log_error "❌ Build failed for $triple"
         return 1
     fi
 
-    # Find and copy the binary
+    # Find and install binary
     local upx_binary
-    upx_binary=$(find "$build_dir" -name upx -type f -executable | head -n1)
-
-    if [[ -z "$upx_binary" ]] || [[ ! -x "$upx_binary" ]]; then
-        log_error "UPX binary not found for $triple"
+    upx_binary=$(find "$build_dir" -name upx -type f -executable -print -quit)
+    
+    if [[ -z "$upx_binary" ]]; then
+        log_error "❌ UPX binary not found"
         return 1
     fi
 
-    # Copy to output
-    local output_file="${OUTPUT_DIR}/upx-${triple}"
+    local output_file="$OUTPUT_DIR/upx-$triple"
     cp "$upx_binary" "$output_file"
-
-    # Strip the binary
-    if [[ -x "${toolchain_path}/bin/${triple}-strip" ]]; then
-        "${toolchain_path}/bin/${triple}-strip" "$output_file"
+    
+    # Strip
+    if [[ -x "$toolchain_path/bin/${triple}-strip" ]]; then
+        "$toolchain_path/bin/${triple}-strip" "$output_file"
     fi
 
-    # Show info
-    local size
-    size=$(du -h "$output_file" | cut -f1)
-    log_info "Built $triple: $output_file ($size)"
-
-    # Verify it's actually static
-    if command -v file &>/dev/null; then
-        if file "$output_file" | grep -q "statically linked"; then
-            log_info "Confirmed: statically linked"
+    # Stats
+    local size=$(stat -f%z "$output_file" 2>/dev/null || stat -c%s "$output_file")
+    size=$(numfmt --to=iec-i --suffix=B --format="%.1f%s" "$size" 2>/dev/null || echo "${size}B")
+    
+    log_info "✅ SUCCESS: upx-$triple ($size)"
+    
+    # Verify static linking
+    if command -v file >/dev/null 2>&1; then
+        local file_info
+        file_info=$(file "$output_file")
+        if [[ "$file_info" =~ statically\ linked ]]; then
+            log_debug "   ✓ Statically linked"
         else
-            log_warn "Warning: may not be statically linked"
+            log_warn "   ⚠  Possibly not fully static: $file_info"
         fi
     fi
-
+    
+    # Quick test if possible
+    if "$output_file" --version >/dev/null 2>&1 2>/dev/null; then
+        log_debug "   ✓ Self-test passed"
+    fi
+    
     return 0
 }
 
-usage() {
-    cat << EOF
-UPX Cross-Compilation Build Script
+# =============================================================================
+# ARGUMENT PARSING
+# =============================================================================
 
-Usage: $(basename "$0") [OPTIONS] [ARCH_TRIPLE ...]
+show_usage() {
+    cat << 'EOF'
+UPX Cross-Compilation Build Script v2.0
 
-Options:
-    --resume         Skip architectures that already have a built output binary
-    --work-dir DIR   Override the work directory (default: ./upx-build)
-    --help           Show this help message
+USAGE:
+    ./build-upx.sh [OPTIONS] [ARCH_TRIPLES...]
 
-Arguments:
-    ARCH_TRIPLE      One or more architecture triples to build
-                     (e.g. i686-unknown-linux-musl armv7-unknown-linux-musleabihf)
-                     If none given, all enabled architectures in ARCHITECTURES[] are built.
+OPTIONS:
+    --resume         Skip already-built architectures
+    --clean          Clean all build artifacts before starting
+    --work-dir DIR   Custom work directory (default: ./upx-build)
+    --jobs N         Parallel jobs (default: auto-detect)
+    --keep           Keep downloaded toolchain tarballs
+    --dry-run        Show what would be done without doing it
+    --verbose        Show debug output
+    --list           List available architectures
+    --help, -h       Show this help
 
-Examples:
-    $(basename "$0")                                      # Build all enabled architectures
-    $(basename "$0") i686-unknown-linux-musl              # Build only i686
-    $(basename "$0") --resume                             # Build, skipping already-built targets
-    $(basename "$0") --work-dir /tmp/upx-build            # Use a custom work directory
+EXAMPLES:
+    ./build-upx.sh                    # Build enabled architectures
+    ./build-upx.sh --resume           # Resume previous build
+    ./build-upx.sh i686 armv7 mips    # Build specific arches
+    ./build-upx.sh --clean --jobs 8   # Clean build with 8 jobs
+    ./build-upx.sh --dry-run --list   # Show what would happen
 EOF
     exit 0
 }
 
-main() {
-    log_info "UPX Cross-Compilation Build Script"
-    log_info "===================================="
-
-    # Parse arguments
-    local -a requested_triples=()
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --resume)
-                RESUME=true
-                shift
-                ;;
+parse_args() {
+    local args=("$@")
+    local i=0
+    
+    while [[ $i -lt ${#args[@]} ]]; do
+        case "${args[$i]}" in
+            --resume) RESUME=true; ((i++)) ;;
+            --clean) CLEAN=true; ((i++)) ;;
+            --keep) KEEP_TOOLCHAIN=true; ((i++)) ;;
+            --dry-run) DRY_RUN=true; VERBOSE=true; ((i++)) ;;
+            --verbose) VERBOSE=true; ((i++)) ;;
             --work-dir)
-                [[ $# -lt 2 ]] && die "--work-dir requires an argument"
-                WORK_DIR="$2"
-                TOOLCHAIN_DIR="${WORK_DIR}/toolchains"
-                SOURCE_DIR="${WORK_DIR}/upx"
-                BUILD_BASE="${WORK_DIR}/builds"
-                OUTPUT_DIR="${WORK_DIR}/output"
-                shift 2
+                ((i++))
+                [[ $i -lt ${#args[@]} ]] || die "--work-dir requires directory"
+                WORK_DIR="${args[$i]}"; ((i++))
                 ;;
-            --help|-h)
-                usage
+            --jobs)
+                ((i++))
+                [[ $i -lt ${#args[@]} ]] || die "--jobs requires number"
+                PARALLEL_JOBS="${args[$i]}"; ((i++))
                 ;;
+            --list)
+                echo "Available architectures:"
+                printf '  %-30s %s\n' "${ARCHITECTURES[@]//:/ ($)}"
+                exit 0
+                ;;
+            --help|-h) show_usage ;;
             -*)
-                die "Unknown option: $1  (use --help for usage)"
+                die "Unknown option: ${args[$i]} (use --help)"
                 ;;
             *)
-                requested_triples+=("$1")
-                shift
+                # Architecture triples
+                WORK_DIR="${WORK_DIR:-$DEFAULT_WORK_DIR}"
+                break 2
                 ;;
         esac
     done
 
-    # Build the list of arch_specs to process
-    local -a build_list=()
-    if [[ ${#requested_triples[@]} -gt 0 ]]; then
-        # User specified explicit triples on the command line
-        for triple in "${requested_triples[@]}"; do
-            # Find the matching arch_spec in ARCHITECTURES (with cmake_proc suffix)
-            local found=false
-            for arch_spec in "${ARCHITECTURES[@]}"; do
-                if [[ "${arch_spec%%:*}" == "$triple" ]]; then
-                    build_list+=("$arch_spec")
-                    found=true
-                    break
-                fi
-            done
-            if ! $found; then
-                # Not in the predefined list — derive cmake processor from the first
-                # component of the triple (e.g. "i686" from "i686-unknown-linux-musl")
-                local inferred_proc="${triple%%-*}"
-                log_warn "Triple '$triple' not in predefined ARCHITECTURES list; inferring cmake processor as '$inferred_proc'"
-                build_list+=("${triple}:${inferred_proc}")
-            fi
-        done
-    else
-        build_list=("${ARCHITECTURES[@]}")
-    fi
+    WORK_DIR="${WORK_DIR:-$DEFAULT_WORK_DIR}"
+    TOOLCHAIN_DIR="$WORK_DIR/toolchains"
+    SOURCE_DIR="$WORK_DIR/upx"
+    BUILD_BASE="$WORK_DIR/builds"
+    OUTPUT_DIR="$WORK_DIR/output"
+}
 
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+
+main() {
+    local start_time total_start
+    total_start=$(date +%s)
+    
+    log_info "🚀 UPX Cross-Compiler $(date)"
+    log_info "======================================"
+
+    parse_args "$@"
+    
+    if $DRY_RUN; then
+        log_info "🐱 Dry run mode enabled"
+    fi
+    
     check_dependencies
     setup_directories
-    clone_upx
+    clone_or_update_upx
 
-    local success=0
-    local failed=0
-    local -a failed_archs=()
+    # Determine build list
+    local -a build_list=("${ARCHITECTURES[@]}")
+    local -a requested_triples=("${args[@]:$i}")
+    
+    if [[ ${#requested_triples[@]} -gt 0 ]]; then
+        log_info "Building requested: ${requested_triples[*]}"
+        build_list=()
+        for triple in "${requested_triples[@]}"; do
+            if [[ "$triple" == *:* ]]; then
+                build_list+=("$triple")
+            else
+                # Try to find matching architecture
+                local found=false
+                for spec in "${ARCHITECTURES[@]}"; do
+                    if [[ "${spec%%:*}" == "$triple" ]]; then
+                        build_list+=("$spec")
+                        found=true
+                        break
+                    fi
+                done
+                if ! $found; then
+                    build_list+=("$triple:${triple%%-*}")
+                    log_warn "Inferring processor for $triple"
+                fi
+            fi
+        done
+    fi
 
+    log_info "📋 Building ${#build_list[@]} architecture(s)"
+
+    local success=0 failed=0 skipped=0
+    local -a failed_list
+    
     for arch_spec in "${build_list[@]}"; do
         local triple="${arch_spec%%:*}"
-
         if build_upx "$arch_spec"; then
-            success=$((success + 1))
+            ((success++))
         else
-            failed=$((failed + 1))
-            failed_archs+=("$triple")
+            ((failed++))
+            failed_list+=("$triple")
         fi
     done
 
-    log_info "===================================="
-    log_info "Build Summary:"
-    log_info "  Successful: $success"
-    log_info "  Failed: $failed"
+    local duration=$(( $(date +%s) - total_start ))
+    log_info "======================================"
+    printf '📊 SUMMARY: %d success, %d failed, %d total (%.1fs)\n' \
+        "$success" "$failed" "$((success+failed))" "$duration"
 
-    if [[ $failed -gt 0 ]]; then
-        log_warn "Failed architectures: ${failed_archs[*]}"
+    if [[ ${#failed_list[@]} -gt 0 ]]; then
+        log_warn "❌ Failed: ${failed_list[*]}"
     fi
-
+    
     if [[ $success -gt 0 ]]; then
-        log_info "Output directory: $OUTPUT_DIR"
-        ls -lh "$OUTPUT_DIR"
+        log_info "📁 Output: $OUTPUT_DIR/"
+        ls -lh "$OUTPUT_DIR/" 2>/dev/null || true
     fi
 
-    [[ $success -gt 0 ]] && exit 0 || exit 1
+    [[ $failed -eq 0 ]] && exit 0 || exit 1
 }
+
 main "$@"
