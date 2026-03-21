@@ -30,6 +30,9 @@ PARALLEL_JOBS=""
 DRY_RUN=false
 VERBOSE=false
 
+# Architectures requested on the command line (populated by parse_args)
+declare -a REQUESTED_TRIPLES=()
+
 # Architectures to build (triple:cmake_system_processor)
 #
 # Uncomment to add more architectures
@@ -165,7 +168,7 @@ setup_directories() {
     
     if $CLEAN; then
         log_info "Cleaning build directories..."
-        rm -rf "$BUILD_BASE"/* "$OUTPUT_DIR"/*
+        rm -rf "${BUILD_BASE:?}"/* "${OUTPUT_DIR:?}"/*
     fi
 }
 
@@ -240,7 +243,11 @@ download_toolchain() {
         return 1
     }
 
-    mv "$tmpfile" "$TOOLCHAIN_DIR/$tarball"  # Keep if requested
+    if $KEEP_TOOLCHAIN; then
+        mv "$tmpfile" "$TOOLCHAIN_DIR/$tarball"
+    else
+        rm -f "$tmpfile"
+    fi
     log_info "✓ Toolchain $triple ready"
 }
 
@@ -281,11 +288,6 @@ build_upx() {
     echo
     log_info "🔨 Building UPX for $triple"
     echo "=========================================="
-
-    if should_skip_build "$triple"; then
-        log_info "⏭️  Skipping (already built, --resume)"
-        return 0
-    fi
 
     if $DRY_RUN; then
         log_dryrun "Would build $triple"
@@ -368,7 +370,8 @@ EOF
     fi
 
     # Stats
-    local size=$(stat -f%z "$output_file" 2>/dev/null || stat -c%s "$output_file")
+    local size
+    size=$(stat -f%z "$output_file" 2>/dev/null || stat -c%s "$output_file")
     size=$(numfmt --to=iec-i --suffix=B --format="%.1f%s" "$size" 2>/dev/null || echo "${size}B")
     
     log_info "✅ SUCCESS: upx-$triple ($size)"
@@ -385,7 +388,7 @@ EOF
     fi
     
     # Quick test if possible
-    if "$output_file" --version >/dev/null 2>&1 2>/dev/null; then
+    if "$output_file" --version >/dev/null 2>&1; then
         log_debug "   ✓ Self-test passed"
     fi
     
@@ -430,24 +433,27 @@ parse_args() {
     
     while [[ $i -lt ${#args[@]} ]]; do
         case "${args[$i]}" in
-            --resume) RESUME=true; ((i++)) ;;
-            --clean) CLEAN=true; ((i++)) ;;
-            --keep) KEEP_TOOLCHAIN=true; ((i++)) ;;
-            --dry-run) DRY_RUN=true; VERBOSE=true; ((i++)) ;;
-            --verbose) VERBOSE=true; ((i++)) ;;
+            --resume) RESUME=true; (( ++i )) ;;
+            --clean) CLEAN=true; (( ++i )) ;;
+            --keep) KEEP_TOOLCHAIN=true; (( ++i )) ;;
+            --dry-run) DRY_RUN=true; VERBOSE=true; (( ++i )) ;;
+            --verbose) VERBOSE=true; (( ++i )) ;;
             --work-dir)
-                ((i++))
+                (( ++i ))
                 [[ $i -lt ${#args[@]} ]] || die "--work-dir requires directory"
-                WORK_DIR="${args[$i]}"; ((i++))
+                WORK_DIR="${args[$i]}"; (( ++i ))
                 ;;
             --jobs)
-                ((i++))
+                (( ++i ))
                 [[ $i -lt ${#args[@]} ]] || die "--jobs requires number"
-                PARALLEL_JOBS="${args[$i]}"; ((i++))
+                [[ "${args[$i]}" =~ ^[1-9][0-9]*$ ]] || die "--jobs requires a positive integer"
+                PARALLEL_JOBS="${args[$i]}"; (( ++i ))
                 ;;
             --list)
                 echo "Available architectures:"
-                printf '  %-30s %s\n' "${ARCHITECTURES[@]//:/ ($)}"
+                for spec in "${ARCHITECTURES[@]}"; do
+                    printf '  %-50s (%s)\n' "${spec%%:*}" "${spec##*:}"
+                done
                 exit 0
                 ;;
             --help|-h) show_usage ;;
@@ -455,9 +461,9 @@ parse_args() {
                 die "Unknown option: ${args[$i]} (use --help)"
                 ;;
             *)
-                # Architecture triples
-                WORK_DIR="${WORK_DIR:-$DEFAULT_WORK_DIR}"
-                break 2
+                # Architecture triples - collect all remaining positional args
+                REQUESTED_TRIPLES+=("${args[@]:$i}")
+                break
                 ;;
         esac
     done
@@ -474,7 +480,7 @@ parse_args() {
 # =============================================================================
 
 main() {
-    local start_time total_start
+    local total_start
     total_start=$(date +%s)
     
     log_info "🚀 UPX Cross-Compiler $(date)"
@@ -492,12 +498,11 @@ main() {
 
     # Determine build list
     local -a build_list=("${ARCHITECTURES[@]}")
-    local -a requested_triples=("${args[@]:$i}")
-    
-    if [[ ${#requested_triples[@]} -gt 0 ]]; then
-        log_info "Building requested: ${requested_triples[*]}"
+
+    if [[ ${#REQUESTED_TRIPLES[@]} -gt 0 ]]; then
+        log_info "Building requested: ${REQUESTED_TRIPLES[*]}"
         build_list=()
-        for triple in "${requested_triples[@]}"; do
+        for triple in "${REQUESTED_TRIPLES[@]}"; do
             if [[ "$triple" == *:* ]]; then
                 build_list+=("$triple")
             else
@@ -525,7 +530,10 @@ main() {
     
     for arch_spec in "${build_list[@]}"; do
         local triple="${arch_spec%%:*}"
-        if build_upx "$arch_spec"; then
+        if should_skip_build "$triple"; then
+            log_info "⏭️  Skipping $triple (already built, --resume)"
+            ((skipped++))
+        elif build_upx "$arch_spec"; then
             ((success++))
         else
             ((failed++))
@@ -535,8 +543,8 @@ main() {
 
     local duration=$(( $(date +%s) - total_start ))
     log_info "======================================"
-    printf '📊 SUMMARY: %d success, %d failed, %d total (%.1fs)\n' \
-        "$success" "$failed" "$((success+failed))" "$duration"
+    printf '📊 SUMMARY: %d success, %d failed, %d skipped, %d total (%ds)\n' \
+        "$success" "$failed" "$skipped" "$((success+failed+skipped))" "$duration"
 
     if [[ ${#failed_list[@]} -gt 0 ]]; then
         log_warn "❌ Failed: ${failed_list[*]}"

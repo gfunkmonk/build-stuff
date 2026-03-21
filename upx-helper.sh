@@ -5,13 +5,16 @@
 
 set -euo pipefail
 
-WORK_DIR="${PWD}/upx-build"
+WORK_DIR="${UPX_BUILD_DIR:-${PWD}/upx-build}"
 
 usage() {
     cat << EOF
 UPX Build Helper Script
 
-Usage: $(basename "$0") <command>
+Usage: $(basename "$0") [--work-dir DIR] <command>
+
+Options:
+    --work-dir DIR  Work directory (default: ./upx-build or \$UPX_BUILD_DIR)
 
 Commands:
     clean-builds    Remove all build directories (keeps source & toolchains)
@@ -28,6 +31,7 @@ Examples:
     $(basename "$0") clean-builds    # Clean builds but keep source
     $(basename "$0") list-output     # Show what's been built
     $(basename "$0") package         # Create upx-binaries.tar.xz
+    $(basename "$0") --work-dir /tmp/upx-build list-output
 
 EOF
     exit 0
@@ -236,6 +240,13 @@ package_binaries() {
 }
 
 main() {
+    # Optional --work-dir before the command
+    if [[ "${1:-}" == "--work-dir" ]]; then
+        [[ -n "${2:-}" ]] || { echo "Error: --work-dir requires a directory"; exit 1; }
+        WORK_DIR="$2"
+        shift 2
+    fi
+
     local cmd=${1:-}
     
     case "$cmd" in
