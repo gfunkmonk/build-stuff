@@ -7,6 +7,7 @@
 # Usage: ./build-upx.sh [OPTIONS] [ARCH_TRIPLE ...]
 
 set -euo pipefail
+shopt -s extglob
 
 # =============================================================================
 # CONFIGURATION
@@ -30,9 +31,6 @@ PARALLEL_JOBS=""
 DRY_RUN=false
 VERBOSE=false
 
-# Architectures requested on the command line (populated by parse_args)
-declare -a REQUESTED_TRIPLES=()
-
 # Architectures to build (triple:cmake_system_processor)
 #
 # Uncomment to add more architectures
@@ -41,34 +39,34 @@ readonly -a ARCHITECTURES=(
 #    "i486-unknown-linux-musl:i486"
 #    "i586-unknown-linux-musl:i586"
     "i686-unknown-linux-musl:i686"
-#    "x86_64-unknown-linux-musl:x86_64"
-#    "armv5-unknown-linux-musleabi:armv5"
-#    "armv6-unknown-linux-musleabi:armv6"
-#    "armv6-unknown-linux-musleabihf:armv6"
-#    "armv7-unknown-linux-musleabi:armv7"
+    "x86_64-unknown-linux-musl:x86_64"
+    "armv5-unknown-linux-musleabi:armv5"
+    "armv6-unknown-linux-musleabi:armv6"
+    "armv6-unknown-linux-musleabihf:armv6"
+    "armv7-unknown-linux-musleabi:armv7"
     "armv7-unknown-linux-musleabihf:armv7"
-#    "aarch64-unknown-linux-musl:aarch64"
-#    "mips-unknown-linux-musl:mips"
+    "aarch64-unknown-linux-musl:aarch64"
+    "mips-unknown-linux-musl:mips"
     "mips-unknown-linux-muslsf:mips"
-#    "mips64-unknown-linux-musl:mips64"
-#    "mips64el-unknown-linux-musl:mips64el"
-#    "mipsel-unknown-linux-musl:mipsel"
-#    "mipsel-unknown-linux-muslsf:mipsel"
-#    "powerpc-unknown-linux-musl:powerpc"
-#    "powerpc-unknown-linux-muslsf:powerpc"
-#    "powerpc64-unknown-linux-musl:ppc64"
-#    "powerpc64le-unknown-linux-musl:ppc64le"
-#    "powerpcle-unknown-linux-musl:powerpcle"
-#    "powerpcle-unknown-linux-muslsf:powerpcle"
-#    "riscv32-unknown-linux-musl:riscv32"
-#    "riscv64-unknown-linux-musl:riscv64"
-#    "loongarch64-unknown-linux-musl:loongarch64"
-#    "m68k-unknown-linux-musl:m68k"
-#    "microblaze-xilinx-linux-musl:microblaze"
-#    "microblazeel-xilinx-linux-musl:microblazeel"
-#    "or1k-unknown-linux-musl:or1k"
-#    "s390x-ibm-linux-musl:s390x"
-#    "sh4-multilib-linux-musl:sh4"
+    "mips64-unknown-linux-musl:mips64"
+    "mips64el-unknown-linux-musl:mips64el"
+    "mipsel-unknown-linux-musl:mipsel"
+    "mipsel-unknown-linux-muslsf:mipsel"
+    "powerpc-unknown-linux-musl:powerpc"
+    "powerpc-unknown-linux-muslsf:powerpc"
+    "powerpc64-unknown-linux-musl:ppc64"
+    "powerpc64le-unknown-linux-musl:ppc64le"
+    "powerpcle-unknown-linux-musl:powerpcle"
+    "powerpcle-unknown-linux-muslsf:powerpcle"
+    "riscv32-unknown-linux-musl:riscv32"
+    "riscv64-unknown-linux-musl:riscv64"
+    "loongarch64-unknown-linux-musl:loongarch64"
+    "m68k-unknown-linux-musl:m68k"
+    "microblaze-xilinx-linux-musl:microblaze"
+    "microblazeel-xilinx-linux-musl:microblazeel"
+    "or1k-unknown-linux-musl:or1k"
+    "s390x-ibm-linux-musl:s390x"
+    "sh4-multilib-linux-musl:sh4"
 )
 
 # Color output
@@ -120,6 +118,48 @@ get_nproc() {
     fi
 }
 
+# Validate and sanitize path to prevent directory traversal
+sanitize_path() {
+    local path="$1"
+    local base_dir="$2"
+    
+    # Remove any trailing slashes
+    path="${path%/}"
+    
+    # Check for directory traversal attempts
+    if [[ "$path" == *"/../"* ]] || [[ "$path" == "../"* ]]; then
+        die "Invalid path (directory traversal detected): $path"
+    fi
+    
+    # Ensure path is absolute or relative to base_dir
+    [[ "$path" == /* ]] || path="$base_dir/$path"
+    
+    # Resolve to absolute path
+    if command -v realpath >/dev/null 2>&1; then
+        path=$(realpath -m "$path")
+    else
+        # Fallback: ensure we don't have double slashes
+        path="${path//\/\//\/}"
+    fi
+    
+    # Verify path is within base_dir
+    if [[ "$path" != "$base_dir"* ]] && [[ "$base_dir" != "/"* ]]; then
+        die "Path outside work directory: $path"
+    fi
+    
+    echo "$path"
+}
+
+# Validate architecture triple format
+validate_triple() {
+    local triple="$1"
+    
+    # Basic triple format: arch-vendor-os-abi (e.g., x86_64-unknown-linux-musl)
+    if [[ ! "$triple" =~ ^[a-zA-Z0-9_]+-[a-zA-Z0-9_]+-[a-zA-Z0-9_]+(-[a-zA-Z0-9_]+)?$ ]]; then
+        die "Invalid architecture triple format: $triple"
+    fi
+}
+
 # =============================================================================
 # DEPENDENCY CHECKING
 # =============================================================================
@@ -157,7 +197,25 @@ check_dependencies() {
 # =============================================================================
 
 setup_directories() {
-    mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
+    # Ensure work directory is absolute
+    WORK_DIR=$(sanitize_path "$WORK_DIR" "$PWD")
+    
+    TOOLCHAIN_DIR="$WORK_DIR/toolchains"
+    SOURCE_DIR="$WORK_DIR/upx"
+    BUILD_BASE="$WORK_DIR/builds"
+    OUTPUT_DIR="$WORK_DIR/output"
+    
+    # Secure directory creation with validation
+    if $DRY_RUN; then
+        log_dryrun "Would create directories: $WORK_DIR"
+    else
+        for dir in "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"; do
+            [[ -d "$dir" ]] || mkdir -p "$dir"
+            if [[ ! -w "$dir" ]]; then
+                die "Cannot write to directory: $dir"
+            fi
+        done
+    fi
     
     log_info "Work directories:"
     log_debug "  Work dir: $WORK_DIR"
@@ -168,7 +226,11 @@ setup_directories() {
     
     if $CLEAN; then
         log_info "Cleaning build directories..."
-        rm -rf "${BUILD_BASE:?}"/* "${OUTPUT_DIR:?}"/*
+        if $DRY_RUN; then
+            log_dryrun "Would clean: ${BUILD_BASE}/* ${OUTPUT_DIR}/*"
+        else
+            rm -rf "${BUILD_BASE:?}"/* "${OUTPUT_DIR:?}"/*
+        fi
     fi
 }
 
@@ -177,8 +239,13 @@ setup_directories() {
 # =============================================================================
 
 clone_or_update_upx() {
-    if [[ -d "$SOURCE_DIR" ]]; then
+    if [[ -d "$SOURCE_DIR/.git" ]]; then
         log_info "UPX source exists, updating..."
+        if $DRY_RUN; then
+            log_dryrun "Would update: $SOURCE_DIR"
+            return 0
+        fi
+        
         pushd "$SOURCE_DIR" >/dev/null
         git fetch origin >/dev/null 2>&1 || log_warn "Failed to fetch updates"
         git checkout "$UPX_BRANCH" >/dev/null 2>&1
@@ -186,18 +253,29 @@ clone_or_update_upx() {
         popd >/dev/null
     else
         log_info "Cloning UPX repository..."
-        git clone --depth=1 --branch "$UPX_BRANCH" "$UPX_REPO" "$SOURCE_DIR"
+        if $DRY_RUN; then
+            log_dryrun "Would clone: $UPX_REPO to $SOURCE_DIR"
+            return 0
+        fi
+        
+        if ! git clone --depth=1 --branch "$UPX_BRANCH" "$UPX_REPO" "$SOURCE_DIR"; then
+            die "Failed to clone UPX repository"
+        fi
     fi
 
     # Update submodules
     if [[ -f "$SOURCE_DIR/.gitmodules" ]]; then
         log_info "Updating submodules..."
-        pushd "$SOURCE_DIR" >/dev/null
-        git submodule update --init --recursive >/dev/null 2>&1
-        popd >/dev/null
+        if ! $DRY_RUN; then
+            pushd "$SOURCE_DIR" >/dev/null
+            git submodule update --init --recursive >/dev/null 2>&1 || log_warn "Failed to update submodules"
+            popd >/dev/null
+        fi
     fi
     
-    log_info "UPX source ready ($(git -C "$SOURCE_DIR" rev-parse --short HEAD))"
+    local commit_hash
+    commit_hash=$(git -C "$SOURCE_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    log_info "UPX source ready ($commit_hash)"
 }
 
 # =============================================================================
@@ -206,10 +284,12 @@ clone_or_update_upx() {
 
 download_toolchain() {
     local triple=$1
+    validate_triple "$triple"
+    
     local tarball="${triple}.tar.xz"
     local toolchain_path="$TOOLCHAIN_DIR/$triple"
 
-    if [[ -d "$toolchain_path" ]]; then
+    if [[ -d "$toolchain_path" && -x "$toolchain_path/bin/${triple}-gcc" ]]; then
         log_debug "Toolchain $triple already exists"
         return 0
     fi
@@ -223,25 +303,40 @@ download_toolchain() {
     local url="$TOOLCHAIN_BASE_URL/$tarball"
     local tmpfile="$TOOLCHAIN_DIR/$tarball.partial"
 
-    # Download with resume capability
+    # Ensure parent directory exists
+    mkdir -p "$(dirname "$tmpfile")"
+    
+    # Download with resume capability and timeout
+    local download_success=false
     if command -v wget >/dev/null 2>&1; then
-        wget -q --continue --show-progress -O "$tmpfile" "$url" || {
-            rm -f "$tmpfile"
-            return 1
-        }
+        if wget -q --timeout=300 --continue --show-progress -O "$tmpfile" "$url"; then
+            download_success=true
+        fi
     elif command -v curl >/dev/null 2>&1; then
-        curl -fL --continue-at=- --progress-bar -o "$tmpfile" "$url" || {
-            rm -f "$tmpfile"
-            return 1
-        }
+        if curl -fL --max-time 300 --continue-at=- --progress-bar -o "$tmpfile" "$url"; then
+            download_success=true
+        fi
+    fi
+    
+    if ! $download_success; then
+        rm -f "$tmpfile"
+        return 1
     fi
 
     log_info "Extracting toolchain: $triple"
     mkdir -p "$toolchain_path"
-    tar -xJf "$tmpfile" -C "$toolchain_path" --strip-components=1 || {
+    
+    # Verify tarball integrity before extraction
+    if ! tar -tJf "$tmpfile" >/dev/null 2>&1; then
+        log_error "Corrupted tarball for $triple"
+        rm -f "$tmpfile"
+        return 1
+    fi
+    
+    if ! tar -xJf "$tmpfile" -C "$toolchain_path" --strip-components=1; then
         rm -rf "$toolchain_path" "$tmpfile"
         return 1
-    }
+    fi
 
     if $KEEP_TOOLCHAIN; then
         mv "$tmpfile" "$TOOLCHAIN_DIR/$tarball"
@@ -253,6 +348,8 @@ download_toolchain() {
 
 verify_toolchain() {
     local triple=$1
+    validate_triple "$triple"
+    
     local toolchain_path="$TOOLCHAIN_DIR/$triple"
     local gcc="$toolchain_path/bin/${triple}-gcc"
 
@@ -261,8 +358,8 @@ verify_toolchain() {
         return 1
     fi
 
-    # Quick compiler test
-    if ! "$gcc" --version >/dev/null 2>&1; then
+    # Quick compiler test with timeout
+    if ! timeout 10 "$gcc" --version >/dev/null 2>&1; then
         log_error "Compiler test failed for $triple"
         return 1
     fi
@@ -277,13 +374,15 @@ verify_toolchain() {
 
 should_skip_build() {
     local triple=$1
-    [[ $RESUME == true && -f "$OUTPUT_DIR/upx-$triple" ]]
+    [[ $RESUME == true && -f "$OUTPUT_DIR/upx-$triple" && -x "$OUTPUT_DIR/upx-$triple" ]]
 }
 
 build_upx() {
     local arch_spec=$1
     local triple=${arch_spec%%:*}
     local cmake_proc=${arch_spec##*:}
+    
+    validate_triple "$triple"
 
     echo
     log_info "🔨 Building UPX for $triple"
@@ -295,8 +394,13 @@ build_upx() {
     fi
 
     # Setup
-    download_toolchain "$triple" || return 1
-    verify_toolchain "$triple" || return 1
+    if ! download_toolchain "$triple"; then
+        return 1
+    fi
+    
+    if ! verify_toolchain "$triple"; then
+        return 1
+    fi
 
     local toolchain_path="$TOOLCHAIN_DIR/$triple"
     local build_dir="$BUILD_BASE/$triple"
@@ -305,7 +409,7 @@ build_upx() {
     rm -rf "$build_dir"
     mkdir -p "$build_dir"
 
-    # Generate toolchain file
+    # Generate toolchain file with secure permissions
     log_debug "Generating toolchain file..."
     cat > "$toolchain_file" << EOF
 set(CMAKE_SYSTEM_NAME Linux)
@@ -327,13 +431,15 @@ set(CMAKE_EXE_LINKER_FLAGS "-static -Wl,--gc-sections")
 set(CMAKE_SHARED_LINKER_FLAGS "-static -Wl,--gc-sections")
 
 # Optimization flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
+set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
+set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector -fno-plt")
 EOF
 
-    # Configure
+    chmod 644 "$toolchain_file"
+
+    # Configure with timeout to prevent hanging
     log_info "Configuring CMake..."
-    if ! cmake -S "$SOURCE_DIR" -B "$build_dir" \
+    if ! timeout 300 cmake -S "$SOURCE_DIR" -B "$build_dir" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
@@ -344,17 +450,17 @@ EOF
         return 1
     fi
 
-    # Build
+    # Build with timeout
     local jobs=${PARALLEL_JOBS:-$(get_nproc)}
     log_info "Building ($jobs jobs)..."
-    if ! cmake --build "$build_dir" --parallel "$jobs"; then
+    if ! timeout 1800 cmake --build "$build_dir" --parallel "$jobs"; then
         log_error "❌ Build failed for $triple"
         return 1
     fi
 
     # Find and install binary
     local upx_binary
-    upx_binary=$(find "$build_dir" -name upx -type f -executable -print -quit)
+    upx_binary=$(find "$build_dir" -name upx -type f -executable -print -quit 2>/dev/null)
     
     if [[ -z "$upx_binary" ]]; then
         log_error "❌ UPX binary not found"
@@ -363,23 +469,33 @@ EOF
 
     local output_file="$OUTPUT_DIR/upx-$triple"
     cp "$upx_binary" "$output_file"
+    chmod 755 "$output_file"
     
     # Strip
     if [[ -x "$toolchain_path/bin/${triple}-strip" ]]; then
-        "$toolchain_path/bin/${triple}-strip" "$output_file"
+        "$toolchain_path/bin/${triple}-strip" "$output_file" 2>/dev/null || true
     fi
 
     # Stats
     local size
-    size=$(stat -f%z "$output_file" 2>/dev/null || stat -c%s "$output_file")
-    size=$(numfmt --to=iec-i --suffix=B --format="%.1f%s" "$size" 2>/dev/null || echo "${size}B")
+    if stat -f%z "$output_file" >/dev/null 2>&1; then
+        size=$(stat -f%z "$output_file")
+    else
+        size=$(stat -c%s "$output_file" 2>/dev/null || echo "0")
+    fi
+    
+    if command -v numfmt >/dev/null 2>&1; then
+        size=$(numfmt --to=iec-i --suffix=B --format="%.1f%s" "$size" 2>/dev/null || echo "${size}B")
+    else
+        size="${size}B"
+    fi
     
     log_info "✅ SUCCESS: upx-$triple ($size)"
     
     # Verify static linking
     if command -v file >/dev/null 2>&1; then
         local file_info
-        file_info=$(file "$output_file")
+        file_info=$(file "$output_file" 2>/dev/null || echo "unknown")
         if [[ "$file_info" =~ statically\ linked ]]; then
             log_debug "   ✓ Statically linked"
         else
@@ -388,7 +504,7 @@ EOF
     fi
     
     # Quick test if possible
-    if "$output_file" --version >/dev/null 2>&1; then
+    if timeout 10 "$output_file" --version >/dev/null 2>&1; then
         log_debug "   ✓ Self-test passed"
     fi
     
@@ -469,10 +585,6 @@ parse_args() {
     done
 
     WORK_DIR="${WORK_DIR:-$DEFAULT_WORK_DIR}"
-    TOOLCHAIN_DIR="$WORK_DIR/toolchains"
-    SOURCE_DIR="$WORK_DIR/upx"
-    BUILD_BASE="$WORK_DIR/builds"
-    OUTPUT_DIR="$WORK_DIR/output"
 }
 
 # =============================================================================
@@ -493,6 +605,12 @@ main() {
     fi
     
     check_dependencies
+    
+    # Validate work directory path before setup
+    if [[ -n "$WORK_DIR" ]]; then
+        WORK_DIR=$(sanitize_path "$WORK_DIR" "$PWD")
+    fi
+    
     setup_directories
     clone_or_update_upx
 
@@ -503,7 +621,8 @@ main() {
         log_info "Building requested: ${REQUESTED_TRIPLES[*]}"
         build_list=()
         for triple in "${REQUESTED_TRIPLES[@]}"; do
-            if [[ "$triple" == *:* ]]; then
+            # Validate triple format
+            if [[ "$triple" =~ : ]]; then
                 build_list+=("$triple")
             else
                 # Try to find matching architecture
@@ -516,7 +635,10 @@ main() {
                     fi
                 done
                 if ! $found; then
-                    build_list+=("$triple:${triple%%-*}")
+                    # Infer processor from triple
+                    local inferred_cpu="${triple##*-}"
+                    inferred_cpu="${inferred_cpu%%-*}"
+                    build_list+=("$triple:$inferred_cpu")
                     log_warn "Inferring processor for $triple"
                 fi
             fi
@@ -552,7 +674,9 @@ main() {
     
     if [[ $success -gt 0 ]]; then
         log_info "📁 Output: $OUTPUT_DIR/"
-        ls -lh "$OUTPUT_DIR/" 2>/dev/null || true
+        if ! $DRY_RUN; then
+            ls -lh "$OUTPUT_DIR/" 2>/dev/null || true
+        fi
     fi
 
     [[ $failed -eq 0 ]] && exit 0 || exit 1
