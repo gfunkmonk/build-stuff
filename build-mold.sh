@@ -64,12 +64,13 @@ show_help() {
     echo -e "${LEMON}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${NEONGREEN}--gcc${NC}         Use GCC toolchains"
-    echo -e "  ${NEONGREEN}--clang${NC}       Use Clang toolchains (default)"
-    echo -e "  ${NEONGREEN}--arch \"LIST\"${NC} Space separated list of arches to build"
-    echo -e "  ${NEONGREEN}--resume${NC}      Skip architectures already found in output/"
-    echo -e "  ${NEONGREEN}--clean${NC}       Wipe build, toolchains, and output"
-    echo -e "  ${NEONGREEN}--help${NC}        Show this help"
+    echo -e "  ${NEONGREEN}--gcc${NC}             Use GCC toolchains"
+    echo -e "  ${NEONGREEN}--clang${NC}           Use Clang toolchains (default)"
+    echo -e "  ${NEONGREEN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
+    echo -e "  ${NEONGREEN}-r|--resume${NC}       Skip architectures already found in output/"
+    echo -e "  ${NEONGREEN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
+    echo -e "  ${NEONGREEN}-C|--clean${NC}        Wipe build, toolchains, and output"
+    echo -e "  ${NEONGREEN}-h|--help${NC}         Show this help"
     echo ""
     echo -e "${ORANGE}Example:${NC} $0 --arch \"x86_64 aarch64\" --resume --gcc"
     echo -e "${SKY}Notes:${NC} Default is Clang. Set ${LEMON}ARCHS=\"x86_64 aarch64\"${NC} to limit targets."
@@ -89,17 +90,21 @@ while [[ $# -gt 0 ]]; do
             RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
             COMPILER_TYPE="clang"
             shift ;;
-        --arch)
+        -a|--arch)
             USER_ARCHS="$2"
             shift 2 ;;
-        --resume)
+        -r|--resume)
             RESUME_MODE=true
             shift ;;
-        --clean)
+        -j|--jobs)
+            JOBS="$2"
+            shift 2
+            ;;
+        -C|--clean)
             echo -e "${NEONRED}💥 Cleaning workspace...${NC}"
             rm -rf "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR" "$MOLD_SRC"
             exit 0 ;;
-        --help) show_help ;;
+        -h|--help) show_help ;;
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
     esac
 done

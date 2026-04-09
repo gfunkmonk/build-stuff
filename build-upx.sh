@@ -238,9 +238,10 @@ show_help() {
     echo -e "${BWHITE}OPTIONS:${NC}"
     echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains"
     echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains (default)"
-    echo -e "  ${NEONBLUE}--arch \"LIST\"${NC}       Space-separated list of arches to build"
-    echo -e "  ${NEONBLUE}--resume${NC}            Skip targets already found in output/"
-    echo -e "  ${NEONBLUE}--clean${NC}             Wipe builds, source, and toolchains"
+    echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
+    echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
+    echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
+    echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds, source, and toolchains"
     echo ""
     echo -e "${BWHITE}COMMANDS:${NC}"
     echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"
@@ -257,7 +258,7 @@ show_help() {
 
 # ── Main Entry ────────────────────────────────────────────────────────────────
 case "${1:-}" in
-    --clean) echo -e "${OCHRE}💥 Nuking work directory...${NC}"; rm -rf "$WORK_DIR"; exit 0 ;;
+    -C|--clean) echo -e "${OCHRE}💥 Nuking work directory...${NC}"; rm -rf "$WORK_DIR"; exit 0 ;;
     list) list_output; exit 0 ;;
     verify) verify_static; exit 0 ;;
     test) test_binary "${2:-}"; exit 0 ;;
@@ -270,9 +271,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --gcc) COMPILER_TYPE="gcc"; RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/eastwood"; shift ;;
         --clang) COMPILER_TYPE="clang"; shift ;;
-        --arch) USER_ARCHS="$2"; shift 2 ;;
-        --resume) RESUME_MODE=true; shift ;;
-        --help|-h) show_help ;;
+        -a|--arch) USER_ARCHS="$2"; shift 2 ;;
+        -r|--resume) RESUME_MODE=true; shift ;;
+        -j|--jobs) JOBS="$2"; shift 2 ;;
+        -h|--help|-h) show_help ;;
         *) shift ;;
     esac
 done

@@ -12,9 +12,10 @@ MAUVE="\033[38;2;224;175;255m"
 MINT="\033[38;2;152;255;152m"
 HELIOTROPE="\033[38;2;223;115;255m"
 TOMATO="\033[38;2;255;99;71m"
-SLATE="\033[38;2;109;129;150m"
+SLATE="\033[38;2;145;200;222m"
 TAWNY="\033[38;2;204;78;0m"
 BWHITE="\033[1;37m"
+CYAN="\033[1;36m"
 NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
@@ -22,8 +23,8 @@ ROOT_DIR="$(pwd)"
 REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
 TOOLCHAIN_DIR="$ROOT_DIR/toolchains"
-BUILD_BASE="$ROOT_DIR/uasm-build"
-OUTPUT_DIR="$ROOT_DIR/uasm-output"
+BUILD_BASE="$ROOT_DIR/build"
+OUTPUT_DIR="$ROOT_DIR/output"
 JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
@@ -34,8 +35,8 @@ declare -A ARCH_INFO=(
   [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz:Makefile-Linux-GCC-64.mak"
   [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz:Makefile-Linux-GCC-64.mak"
   [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz:Makefile-Linux-GCC-64.mak"
-  [armv7hf]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz:Makefile-Linux-GCC-64.mak"
-  [armv6hf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz:Makefile-Linux-GCC-64.mak"
+  [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz:Makefile-Linux-GCC-64.mak"
+  [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz:Makefile-Linux-GCC-64.mak"
 )
 
 # ── SHA256 Hash Tables ────────────────────────────────────────────────────────
@@ -60,13 +61,18 @@ show_help() {
     echo -e "${MAUVE}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${CHARTREUSE}--gcc${NC}             Use GCC toolchains"
-    echo -e "  ${CHARTREUSE}--clang${NC}           Use Clang toolchains (default)"
-    echo -e "  ${CHARTREUSE}--arch \"LIST\"${NC}     Space separated list of arches to build"
-    echo -e "  ${CHARTREUSE}--resume${NC}          Skip architectures already found in output/"
-    echo -e "  ${CHARTREUSE}--clean${NC}           Wipe build artifacts and source"
-    echo -e "  ${CHARTREUSE}--help${NC}            Show this menu"
+    echo -e "  ${CHARTREUSE}--gcc${NC}                Use GCC toolchains"
+    echo -e "  ${CHARTREUSE}--clang${NC}              Use Clang toolchains (default)"
+    echo -e "  ${CHARTREUSE}-a|--arch \"LIST\"${NC}     Space separated list of arches to build"
+    echo -e "  ${CHARTREUSE}-r|--resume${NC}          Skip architectures already found in output/"
+    echo -e "  ${CHARTREUSE}-j|--jobs N${NC}          Parallel make jobs (default: auto-detected)"
+    echo -e "  ${CHARTREUSE}-C|--clean${NC}           Wipe build artifacts and source"
+    echo -e "  ${CHARTREUSE}-h|--help${NC}            Show this menu"
     exit 0
+}
+
+success() {
+    echo -e "${CHARTREUSE}[SUCCESS]${NC} $*"
 }
 
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
@@ -81,52 +87,83 @@ while [[ $# -gt 0 ]]; do
             RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
             COMPILER_TYPE="clang"
             shift ;;
-        --arch)
+        -a|--arch)
             USER_ARCHS="$2"
             shift 2 ;;
-        --resume)
+        -r|--resume)
             RESUME_MODE=true
             shift ;;
-        --clean)
+        -j|--jobs)
+            JOBS="$2"
+            shift 2
+            ;;
+        -C|--clean)
             echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
             rm -rf "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
             exit 0 ;;
-        --help) show_help ;;
+        -h|--help) show_help ;;
         *) echo -e "${CRIMSON}Unknown option: $1${NC}"; show_help ;;
     esac
 done
 
-DEFAULT_ARCHS="x86_64 aarch64 i686 armv7hf armv6hf"
+DEFAULT_ARCHS="x86_64 aarch64 i686 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
-    local arch_key="$1"
+    arch_key="$1"
     local info="${ARCH_INFO[$arch_key]}"
     IFS=: read -r triple tarball makefile <<<"$info"
-    
-    local out_file="$OUTPUT_DIR/uasm-$arch_key"
+
+    out_file="$OUTPUT_DIR/uasm-$arch_key"
 
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
+
     if [[ "$RESUME_MODE" == true && -f "$out_file" ]]; then
         echo -e "${MINT}⏭️  Skipping $arch_key: Binary exists (Resume Mode)${NC}"
         return
     fi
 
     echo -e "${CARIBBEAN}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} [${SLATE}$triple${NC}] via ${TAWNY}$COMPILER_TYPE${NC}"
-    
+
     mkdir -p "$TOOLCHAIN_DIR"
 
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
-        echo -e "${MAUVE}==>${NC} Fetching toolchain..."
-        curl -fsSL --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" || {
-            echo -e "${CRIMSON}Download failed for $tarball${NC}"
+        echo -e "${MAUVE}==>${NC} Fetching toolchain: ${CANARY}$tarball${NC}"
+        
+        # We use -L to follow redirects and -# for the bar
+        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
+        while IFS= read -d $'\r' -r p; do
+            # The '##*' strips everything up to the last space, 
+            # and '${p%%%*}' strips the trailing percentage sign.
+            # This is faster and more reliable than expr in a tight loop.
+            local clean_p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
+            
+            # Default to 0 if clean_p is empty
+            : ${clean_p:=0}
+            
+            # Scale for the 10-step Sunflower bar
+            local scaled=$(( clean_p / 10 ))
+            
+            if [ "$scaled" -gt 0 ]; then
+                # Using a native bash string generator instead of eval/seq for speed/safety
+                bar=$(printf '%.0s=' $(seq 1 "$scaled"))
+            else
+                bar=""
+            fi
+            
+            printf "\r${CYAN}[ %3d%% ] [ %-10s> ]${NC}" "$clean_p" "$bar"
+        done
+
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
+            echo -e "\n${CRIMSON}Download failed for $tarball${NC}"
+            rm -f "$tarpath"
             exit 1
-        }
+        fi
+        echo -e "\n${CHARTREUSE}✨ Download Complete.${NC}"
     else
         echo -e "${MINT}✨ Using cached tarball: $tarball${NC}"
     fi
@@ -160,21 +197,42 @@ build_arch() {
 
     # 5. Prep Work Dir
     local build_work_dir="$BUILD_BASE/work-$arch_key"
-    echo -e "${MAUVE}==>${NC} Preparing build environment..."
+    echo -e "${MAUVE}==>${BWHITE} Preparing build environment...${NC}"
     rm -rf "$build_work_dir"
     mkdir -p "$build_work_dir"
     cp -r "$BUILD_BASE/uasm-src/." "$build_work_dir/"
-    
+
     cd "$build_work_dir"
 
-    # 6. Compile
+    # 6. Compile with Interactive Progress Bar & Logging
+    local log_file="$ROOT_DIR/uasm-build/build-${arch_key}.log"
+
+    # This strips the ROOT_DIR from the path for a cleaner display
+    local relative_log="${log_file#$ROOT_DIR/}"
+
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
-    
-    # Injecting -static into CC to ensure musl static linkage
-    make -f "$makefile" \
-        CC="$cc_bin -static" \
-        STRIP="$strip_bin" \
-        -j"$JOBS" > /dev/null
+    echo -e "${SLATE}Log: ./$relative_log${NC}"
+
+    local total_files=$(find . -name "*.c" | wc -l)
+    local current_file=0
+    set +e
+    # 'tee' clones the output: one stream goes to the log, one to our 'while' loop
+    exec 3< <(make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file")
+    while read -u 3 -r line; do
+        # Narrowing the match to " -c " and ".c" to help keep the % accurate
+        if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
+            ((current_file++))
+            local percent=$(( current_file * 105 / total_files ))
+            [[ $percent -gt 100 ]] && percent=100
+            local num_hashes=$(( percent / 2 ))
+            local hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
+            printf "\r${CYAN}[%-50s] %d%% (${CANARY}%d/%d${NC})" \
+                "$hashes" "$percent" "$current_file" "$total_files"
+        fi
+    done
+    exec 3<&-
+    set -e
+    echo ""
 
     # 7. Finalize
     local generated_bin=""
@@ -223,4 +281,7 @@ for arch in $ARCHS; do
 done
 
 echo -e "\n${HELIOTROPE}🎊 UASM Build completed!${NC}"
+size=$(stat -c%s "${out_file}" 2>/dev/null || stat -f%z "${out_file}" 2>/dev/null || echo "unknown")
+success "Built ${arch}: uasm-$arch_key ($(numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes"))"
 ls -lh "$OUTPUT_DIR"
+
