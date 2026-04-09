@@ -22,9 +22,8 @@ NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
 # Use absolute paths to prevent curl write errors in relative subdirs
-ROOT_DIR="$(pwd)"
+ROOT_DIR="$(pwd)/mold-build"
 RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-TOOLCHAIN_DIR="$ROOT_DIR/toolchains"
 MOLD_SRC="$ROOT_DIR/mold"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
@@ -111,6 +110,12 @@ done
 
 DEFAULT_ARCHS="i686 x86_64 aarch64 armv7hf armv6hf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
+
+if [[ "$COMPILER_TYPE" == clang ]]; then
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
+else
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
+fi
 
 # ── Logic ─────────────────────────────────────────────────────────────────────
 
@@ -228,7 +233,7 @@ mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 # Check for mold source
 if [[ ! -d "$MOLD_SRC/.git" ]]; then
     echo -e "${SKY}==>${HIGHLIGHTER} Cloning mold source into $MOLD_SRC...${NC}"
-    git clone --branch "$MOLD_BRANCH" --depth 1 https://github.com/gfunkmonk/mold.git "$MOLD_SRC"
+    git clone --branch "$MOLD_BRANCH" --depth 1 https://github.com/gfunkmonk/mold.git "$MOLD_SRC" > /dev/null 2>&1
 fi
 
 # Determine build system

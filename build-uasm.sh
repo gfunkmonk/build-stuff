@@ -19,10 +19,9 @@ CYAN="\033[1;36m"
 NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-ROOT_DIR="$(pwd)"
+ROOT_DIR="$(pwd)/uasm-build"
 REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
-TOOLCHAIN_DIR="$ROOT_DIR/toolchains"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 JOBS="$(nproc)"
@@ -109,6 +108,12 @@ done
 DEFAULT_ARCHS="x86_64 aarch64 i686 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
+if [[ "$COMPILER_TYPE" == clang ]]; then
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
+else
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
+fi
+
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -133,31 +138,25 @@ build_arch() {
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
         echo -e "${MAUVE}==>${NC} Fetching toolchain: ${CANARY}$tarball${NC}"
-        
         # We use -L to follow redirects and -# for the bar
         curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
         while IFS= read -d $'\r' -r p; do
-            # The '##*' strips everything up to the last space, 
+            # The '##*' strips everything up to the last space,
             # and '${p%%%*}' strips the trailing percentage sign.
             # This is faster and more reliable than expr in a tight loop.
             local clean_p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
-            
             # Default to 0 if clean_p is empty
             : ${clean_p:=0}
-            
             # Scale for the 10-step Sunflower bar
             local scaled=$(( clean_p / 10 ))
-            
             if [ "$scaled" -gt 0 ]; then
                 # Using a native bash string generator instead of eval/seq for speed/safety
                 bar=$(printf '%.0s=' $(seq 1 "$scaled"))
             else
                 bar=""
             fi
-            
             printf "\r${CYAN}[ %3d%% ] [ %-10s> ]${NC}" "$clean_p" "$bar"
         done
-
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
             echo -e "\n${CRIMSON}Download failed for $tarball${NC}"
             rm -f "$tarpath"
@@ -177,7 +176,7 @@ build_arch() {
     if [[ "$actual" != "$expected" ]]; then
         echo -e "${CRIMSON}CRITICAL: Hash mismatch for $tarball!${NC}"
         echo -e "Expected: $expected\nGot: $actual"
-        rm -f "$tarpath" 
+        rm -f "$tarpath"
         exit 1
     fi
 
@@ -205,7 +204,7 @@ build_arch() {
     cd "$build_work_dir"
 
     # 6. Compile with Interactive Progress Bar & Logging
-    local log_file="$ROOT_DIR/uasm-build/build-${arch_key}.log"
+    local log_file="$ROOT_DIR/build-${arch_key}.log"
     mkdir -p "$ROOT_DIR/uasm-build"
 
     # This strips the ROOT_DIR from the path for a cleaner display
@@ -222,7 +221,7 @@ build_arch() {
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
             ((current_file++)) || true
             local percent=0
-            [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 100 / total_files ))
+            [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 105 / total_files ))
             [[ $percent -gt 100 ]] && percent=100
             local num_hashes=$(( percent / 2 ))
             local hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
@@ -270,7 +269,7 @@ mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 # Clone Source once
 if [[ ! -d "$BUILD_BASE/uasm-src/.git" ]]; then
     echo -e "${MAUVE}==>${NC} Cloning UASM source ($REPO_BRANCH)..."
-    git clone --branch "$REPO_BRANCH" --depth 1 "$REPO_URL" "$BUILD_BASE/uasm-src"
+    git clone --branch "$REPO_BRANCH" --depth 1 "$REPO_URL" "$BUILD_BASE/uasm-src" > /dev/null 2>&1
 else
     echo -e "${MINT}✨ Source code present.${NC}"
 fi
