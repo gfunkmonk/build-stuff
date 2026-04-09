@@ -98,7 +98,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -C|--clean)
             echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
-            rm -rf "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
+            rm -rf "$ROOT_DIR/toolchains" "$BUILD_BASE" "$OUTPUT_DIR"
             exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${CRIMSON}Unknown option: $1${NC}"; show_help ;;
@@ -139,7 +139,7 @@ build_arch() {
     if [[ ! -f "$tarpath" ]]; then
         echo -e "${MAUVE}==>${NC} Fetching toolchain: ${CANARY}$tarball${NC}"
         # We use -L to follow redirects and -# for the bar
-        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
+        curl -fSL -# --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
         while IFS= read -d $'\r' -r p; do
             # The '##*' strips everything up to the last space,
             # and '${p%%%*}' strips the trailing percentage sign.
@@ -201,8 +201,6 @@ build_arch() {
     mkdir -p "$build_work_dir"
     cp -r "$BUILD_BASE/uasm-src/." "$build_work_dir/"
 
-    cd "$build_work_dir"
-
     # 6. Compile with Interactive Progress Bar & Logging
     local log_file="$ROOT_DIR/build-${arch_key}.log"
     mkdir -p "$ROOT_DIR/uasm-build"
@@ -249,7 +247,7 @@ build_arch() {
 
     mkdir -p "$OUTPUT_DIR"
     cp "$generated_bin" "$out_file"
-    
+
     if [[ -x "$strip_bin" ]]; then
         echo -e "${MAUVE}==>${NC} Stripping symbols..."
         "$strip_bin" "$out_file"
@@ -257,8 +255,6 @@ build_arch() {
 
     local final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "${CHARTREUSE}✅ Successfully built: ${BWHITE}uasm-$arch_key${NC} (${CANARY}$final_size${NC})"
-    
-    cd "$ROOT_DIR"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────

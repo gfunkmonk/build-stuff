@@ -50,7 +50,6 @@ declare -A ARCH_INFO=(
   [riscv64]="riscv64-unknown-linux-musl:riscv64"
   [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
   [m68k]="m68k-unknown-linux-musl:m68k"
-  [or1k]="or1k-unknown-linux-musl:or1k"
   [s390x]="s390x-ibm-linux-musl:s390x"
   [sh4]="sh4-multilib-linux-musl:sh4")
 
@@ -143,7 +142,7 @@ test_binary() {
 
     # Determine emulation requirement
     local qemu_bin=""
-if   [[ "$bin_name" =~ aarch64 ]]; then qemu_bin="qemu-aarch64-static"
+    if   [[ "$bin_name" =~ aarch64 ]]; then qemu_bin="qemu-aarch64-static"
     elif [[ "$bin_name" =~ armv[5-7]|arm- ]]; then qemu_bin="qemu-arm-static"
     elif [[ "$bin_name" =~ riscv64 ]]; then qemu_bin="qemu-riscv64-static"
     elif [[ "$bin_name" =~ riscv32 ]]; then qemu_bin="qemu-riscv32-static"
@@ -184,7 +183,7 @@ build_arch() {
     IFS=: read -r triple cmake_proc <<<"$info"
     local tarball="${triple}.tar.xz"
     local out_file="$OUTPUT_DIR/upx-$arch_key"
-    local log_file="$WORK_DIR/build.log"
+    local log_file="$WORK_DIR/build-$arch.log"
 
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
     [[ "$RESUME_MODE" == true && -f "$out_file" ]] && { echo -e "${SLATE}⏭️  Skipping $arch_key${NC}"; return; }
@@ -195,7 +194,7 @@ build_arch() {
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
         echo -n -e "${SLATE}==>${NC} Fetching toolchain... "
-        curl -fsSL --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
+        curl -fsSL --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
     fi
 
     echo -e "${SLATE}==>${NC} Verifying Integrity..."
@@ -252,16 +251,14 @@ echo -n -e "${SLATE}==>${NC} Configuring CMake... "
         return 1
     fi
     echo -n -e "${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}[  0%]${NC}"
-    # Run the build, pipe the output through a filter for the percentage
-    # and use a carriage return (\r) to overwrite the same line.
+    # Capture the pipeline exit codes before the if block clears them
     cmake --build "$bdir" --parallel "$JOBS" 2>&1 | tee -a "$log_file" | \
     grep --line-buffered -o '\[.*%\]' | \
-    while read -r line; do 
-        echo -ne "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}$line${NC}"; 
+    while read -r line; do
+        echo -ne "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}$line${NC}"
     done
-
-    # Check if the build actually succeeded
-    if [ ${PIPESTATUS[0]} -eq 0 ]; then
+    local pipe_status=("${PIPESTATUS[@]}")
+    if [[ "${pipe_status[0]}" -eq 0 ]]; then
         echo -e "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${NEONGREEN}Done  ${NC}"
     else
         echo -e "\n${TOMATO}FAILED${NC}"
@@ -335,7 +332,7 @@ done
 if [[ "$COMPILER_TYPE" == clang ]]; then
   TOOLCHAIN_DIR="$WORK_DIR/toolchains/clang"
 else
-  TOOLCHAIN_DIR="WORK_DIR/toolchains/gcc"
+  TOOLCHAIN_DIR="$WORK_DIR/toolchains/gcc"
 fi
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"

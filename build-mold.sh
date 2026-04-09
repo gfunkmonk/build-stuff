@@ -101,7 +101,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -C|--clean)
             echo -e "${NEONRED}💥 Cleaning workspace...${NC}"
-            rm -rf "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR" "$MOLD_SRC"
+            rm -rf "$ROOT_DIR/toolchains" "$BUILD_BASE" "$OUTPUT_DIR" "$MOLD_SRC"
             exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
@@ -192,7 +192,8 @@ build_arch() {
     local bdir="$BUILD_BASE/$arch"
     local idir="$BUILD_BASE/$arch-install"
     mkdir -p "$bdir" "$idir" "$OUTPUT_DIR"
-    
+    local log_file="$ROOT_DIR/build-$arch.log"
+
     echo -e "${SKY}==>${NC} ${ORANGE}Configuring CMake...${NC}"
     cmake -S "$MOLD_SRC" -B "$bdir" -G "${CMAKE_GENERATOR:-Unix Makefiles}" \
         -DCMAKE_BUILD_TYPE=Release \
@@ -205,7 +206,9 @@ build_arch() {
         -DMOLD_USE_SYSTEM_MIMALLOC=OFF \
         -DMOLD_USE_SYSTEM_TBB=OFF \
         -DBUILD_SHARED_LIBS=OFF \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" > /dev/null
+        -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
+        echo -e "${NEONRED}CMake configure FAILED. See: $log_file${NC}"
+        return 1
 
     echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
     ${BUILD_CMD:-make} -C "$bdir" > /dev/null
