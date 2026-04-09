@@ -56,7 +56,7 @@ declare -A HASHES_GCC=(
   [arm-unknown-linux-musleabihf.tar.xz]="cc19512e6ab5ea044304d9ccea4aa46927c4759b99b4aec4c0d529ffd5bdf1f9"
   [armv7-unknown-linux-musleabihf.tar.xz]="a6a053c0745e58e63ae5bb2104dbbd0b330d8fb30a87fedb814ab0750dd56a28"
   [i686-unknown-linux-musl.tar.xz]="b5885cdb20592f3e09acc7bf4ff29e0f99c66dbe33bdb2675d59c9f3fd3861f8"
-  [x86_64-unknown-linux-musl.tar.xz]="4563113b8fbff8e1a00772426ce235434f48fdefa2968cc5f0e62c2baa7ab5cc" 
+  [x86_64-unknown-linux-musl.tar.xz]="4563113b8fbff8e1a00772426ce235434f48fdefa2968cc5f0e62c2baa7ab5cc"
 )
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
@@ -119,7 +119,6 @@ build_arch() {
     local info="${ARCH_INFO[$arch]}"
     IFS=: read -r triple tarball cmake_proc <<<"$info"
     local out_file="$OUTPUT_DIR/mold-$arch"
-
     echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     
     # Check Resume Mode
@@ -210,7 +209,6 @@ build_arch() {
     cmake --build "$bdir" --target install > /dev/null
 
     # 6. Finalize Binary
-    local out_file="$OUTPUT_DIR/mold-$arch"
     cp "$idir/bin/mold" "$out_file"
     if [[ -x "$strip" ]]; then
         echo -e "${SKY}==>${NC} ${PEACH}Stripping symbols...${NC}"

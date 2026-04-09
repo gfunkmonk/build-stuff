@@ -112,11 +112,11 @@ ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
-    arch_key="$1"
+    local arch_key="$1"
     local info="${ARCH_INFO[$arch_key]}"
     IFS=: read -r triple tarball makefile <<<"$info"
 
-    out_file="$OUTPUT_DIR/uasm-$arch_key"
+    local out_file="$OUTPUT_DIR/uasm-$arch_key"
 
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
@@ -206,6 +206,7 @@ build_arch() {
 
     # 6. Compile with Interactive Progress Bar & Logging
     local log_file="$ROOT_DIR/uasm-build/build-${arch_key}.log"
+    mkdir -p "$ROOT_DIR/uasm-build"
 
     # This strips the ROOT_DIR from the path for a cleaner display
     local relative_log="${log_file#$ROOT_DIR/}"
@@ -216,13 +217,12 @@ build_arch() {
     local total_files=$(find . -name "*.c" | wc -l)
     local current_file=0
     set +e
-    # 'tee' clones the output: one stream goes to the log, one to our 'while' loop
-    exec 3< <(make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file")
-    while read -u 3 -r line; do
-        # Narrowing the match to " -c " and ".c" to help keep the % accurate
+    make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
+    while IFS= read -r line; do
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
-            ((current_file++))
-            local percent=$(( current_file * 105 / total_files ))
+            ((current_file++)) || true
+            local percent=0
+            [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 100 / total_files ))
             [[ $percent -gt 100 ]] && percent=100
             local num_hashes=$(( percent / 2 ))
             local hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
@@ -230,9 +230,13 @@ build_arch() {
                 "$hashes" "$percent" "$current_file" "$total_files"
         fi
     done
-    exec 3<&-
+    local make_exit=${PIPESTATUS[0]}
     set -e
     echo ""
+    if [[ "$make_exit" -ne 0 ]]; then
+        echo -e "${CRIMSON}Build failed! Check log: $log_file${NC}"
+        exit 1
+    fi
 
     # 7. Finalize
     local generated_bin=""
@@ -281,7 +285,12 @@ for arch in $ARCHS; do
 done
 
 echo -e "\n${HELIOTROPE}🎊 UASM Build completed!${NC}"
-size=$(stat -c%s "${out_file}" 2>/dev/null || stat -f%z "${out_file}" 2>/dev/null || echo "unknown")
-success "Built ${arch}: uasm-$arch_key ($(numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes"))"
+for arch in $ARCHS; do
+    local_out="$OUTPUT_DIR/uasm-$arch"
+    if [[ -f "$local_out" ]]; then
+        size=$(stat -c%s "$local_out" 2>/dev/null || stat -f%z "$local_out" 2>/dev/null || echo "unknown")
+        success "Built $arch: uasm-$arch ($(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes"))"
+    fi
+done
 ls -lh "$OUTPUT_DIR"
 
