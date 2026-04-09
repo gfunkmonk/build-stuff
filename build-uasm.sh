@@ -49,11 +49,11 @@ declare -A HASHES_CLANG=(
 )
 
 declare -A HASHES_GCC=(
-  [aarch64-unknown-linux-musl.tar.xz]="cbcdecffa855f5d8e20b02f05835793f4e31505ce00da57798b75865db5ab387"
-  [arm-unknown-linux-musleabihf.tar.xz]="cc19512e6ab5ea044304d9ccea4aa46927c4759b99b4aec4c0d529ffd5bdf1f9"
-  [armv7-unknown-linux-musleabihf.tar.xz]="a6a053c0745e58e63ae5bb2104dbbd0b330d8fb30a87fedb814ab0750dd56a28"
-  [i686-unknown-linux-musl.tar.xz]="b5885cdb20592f3e09acc7bf4ff29e0f99c66dbe33bdb2675d59c9f3fd3861f8"
-  [x86_64-unknown-linux-musl.tar.xz]="4563113b8fbff8e1a00772426ce235434f48fdefa2968cc5f0e62c2baa7ab5cc" 
+  [aarch64-unknown-linux-musl.tar.xz]="5dd03719e91e295d0bc32287e54107d1b74c82a2f9f19ec041949eb84e4b0a89"
+  [arm-unknown-linux-musleabihf.tar.xz]="70ba032a2281b00ea739888899774a339a6b4ca25416b0fa5aa972a4b0b107d0"
+  [armv7-unknown-linux-musleabihf.tar.xz]="e9a991d7e6bf228bc297c3eeba8b45c3fdf4a95df5e170f624ab54a4310a9d28"
+  [i686-unknown-linux-musl.tar.xz]="45c9763c0c03e284b0577e2b5881c13813803a1e985b705a3a1a5200c4efaeb8"
+  [x86_64-unknown-linux-musl.tar.xz]="188e16cf5823386e6efa734c23de0455149fa0355e46a761b2cd189a9f25f989"
 )
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --gcc)
-            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/prevalence"
+            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
             COMPILER_TYPE="gcc"
             shift ;;
         --clang)
@@ -112,11 +112,11 @@ ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
-    arch_key="$1"
+    local arch_key="$1"
     local info="${ARCH_INFO[$arch_key]}"
     IFS=: read -r triple tarball makefile <<<"$info"
 
-    out_file="$OUTPUT_DIR/uasm-$arch_key"
+    local out_file="$OUTPUT_DIR/uasm-$arch_key"
 
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
@@ -206,6 +206,7 @@ build_arch() {
 
     # 6. Compile with Interactive Progress Bar & Logging
     local log_file="$ROOT_DIR/uasm-build/build-${arch_key}.log"
+    mkdir -p "$ROOT_DIR/uasm-build"
 
     # This strips the ROOT_DIR from the path for a cleaner display
     local relative_log="${log_file#$ROOT_DIR/}"
@@ -216,13 +217,12 @@ build_arch() {
     local total_files=$(find . -name "*.c" | wc -l)
     local current_file=0
     set +e
-    # 'tee' clones the output: one stream goes to the log, one to our 'while' loop
-    exec 3< <(make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file")
-    while read -u 3 -r line; do
-        # Narrowing the match to " -c " and ".c" to help keep the % accurate
+    make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
+    while IFS= read -r line; do
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
-            ((current_file++))
-            local percent=$(( current_file * 105 / total_files ))
+            ((current_file++)) || true
+            local percent=0
+            [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 100 / total_files ))
             [[ $percent -gt 100 ]] && percent=100
             local num_hashes=$(( percent / 2 ))
             local hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
@@ -230,9 +230,13 @@ build_arch() {
                 "$hashes" "$percent" "$current_file" "$total_files"
         fi
     done
-    exec 3<&-
+    local make_exit=${PIPESTATUS[0]}
     set -e
     echo ""
+    if [[ "$make_exit" -ne 0 ]]; then
+        echo -e "${CRIMSON}Build failed! Check log: $log_file${NC}"
+        exit 1
+    fi
 
     # 7. Finalize
     local generated_bin=""
@@ -281,7 +285,12 @@ for arch in $ARCHS; do
 done
 
 echo -e "\n${HELIOTROPE}🎊 UASM Build completed!${NC}"
-size=$(stat -c%s "${out_file}" 2>/dev/null || stat -f%z "${out_file}" 2>/dev/null || echo "unknown")
-success "Built ${arch}: uasm-$arch_key ($(numfmt --to=iec-i --suffix=B "${size}" 2>/dev/null || echo "${size} bytes"))"
+for arch in $ARCHS; do
+    local_out="$OUTPUT_DIR/uasm-$arch"
+    if [[ -f "$local_out" ]]; then
+        size=$(stat -c%s "$local_out" 2>/dev/null || stat -f%z "$local_out" 2>/dev/null || echo "unknown")
+        success "Built $arch: uasm-$arch ($(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes"))"
+    fi
+done
 ls -lh "$OUTPUT_DIR"
 

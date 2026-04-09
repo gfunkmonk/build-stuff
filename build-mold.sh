@@ -52,11 +52,11 @@ declare -A HASHES_CLANG=(
 )
 
 declare -A HASHES_GCC=(
-  [aarch64-unknown-linux-musl.tar.xz]="cbcdecffa855f5d8e20b02f05835793f4e31505ce00da57798b75865db5ab387"
-  [arm-unknown-linux-musleabihf.tar.xz]="cc19512e6ab5ea044304d9ccea4aa46927c4759b99b4aec4c0d529ffd5bdf1f9"
-  [armv7-unknown-linux-musleabihf.tar.xz]="a6a053c0745e58e63ae5bb2104dbbd0b330d8fb30a87fedb814ab0750dd56a28"
-  [i686-unknown-linux-musl.tar.xz]="b5885cdb20592f3e09acc7bf4ff29e0f99c66dbe33bdb2675d59c9f3fd3861f8"
-  [x86_64-unknown-linux-musl.tar.xz]="4563113b8fbff8e1a00772426ce235434f48fdefa2968cc5f0e62c2baa7ab5cc" 
+  [aarch64-unknown-linux-musl.tar.xz]="5dd03719e91e295d0bc32287e54107d1b74c82a2f9f19ec041949eb84e4b0a89"
+  [arm-unknown-linux-musleabihf.tar.xz]="70ba032a2281b00ea739888899774a339a6b4ca25416b0fa5aa972a4b0b107d0"
+  [armv7-unknown-linux-musleabihf.tar.xz]="e9a991d7e6bf228bc297c3eeba8b45c3fdf4a95df5e170f624ab54a4310a9d28"
+  [i686-unknown-linux-musl.tar.xz]="45c9763c0c03e284b0577e2b5881c13813803a1e985b705a3a1a5200c4efaeb8"
+  [x86_64-unknown-linux-musl.tar.xz]="188e16cf5823386e6efa734c23de0455149fa0355e46a761b2cd189a9f25f989"
 )
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --gcc)
-            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/prevalence"
+            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
             COMPILER_TYPE="gcc"
             shift ;;
         --clang)
@@ -119,7 +119,6 @@ build_arch() {
     local info="${ARCH_INFO[$arch]}"
     IFS=: read -r triple tarball cmake_proc <<<"$info"
     local out_file="$OUTPUT_DIR/mold-$arch"
-
     echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     
     # Check Resume Mode
@@ -210,7 +209,6 @@ build_arch() {
     cmake --build "$bdir" --target install > /dev/null
 
     # 6. Finalize Binary
-    local out_file="$OUTPUT_DIR/mold-$arch"
     cp "$idir/bin/mold" "$out_file"
     if [[ -x "$strip" ]]; then
         echo -e "${SKY}==>${NC} ${PEACH}Stripping symbols...${NC}"

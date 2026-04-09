@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-: ${ARCH:=""} ${arch:=""} ${a:=""} ${target:=""}
 
 # ── Gemini's Curated Palette ──────────────────────────────────────────────────
 AQUA="\033[38;2;18;254;202m"          # Progress
@@ -179,9 +178,6 @@ build_arch() {
 # 4. Compile with Error Logging
 echo -n -e "${SLATE}==>${NC} Configuring CMake... "
 
-# Clear the EXTRA_FLAGS that caused the crash
-local EXTRA_FLAGS=""
-
     if cmake -S "$SOURCE_DIR" -B "$bdir" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_SYSTEM_NAME=Linux \
@@ -274,7 +270,7 @@ while [[ $# -gt 0 ]]; do
         -a|--arch) USER_ARCHS="$2"; shift 2 ;;
         -r|--resume) RESUME_MODE=true; shift ;;
         -j|--jobs) JOBS="$2"; shift 2 ;;
-        -h|--help|-h) show_help ;;
+        -h|--help) show_help ;;
         *) shift ;;
     esac
 done
