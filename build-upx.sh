@@ -15,13 +15,12 @@ BWHITE="\033[1;37m"                    # Bold Highlight
 NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-ROOT_DIR="$(pwd)"
+ROOT_DIR="$(pwd)/upx-build"
 UPX_REPO="https://github.com/gfunkmonk/upx.git"
 UPX_BRANCH="devel"
-WORK_DIR="$ROOT_DIR/upx-build"
-SOURCE_DIR="$WORK_DIR/upx-src"
-BUILD_BASE="$WORK_DIR/builds"
-OUTPUT_DIR="$WORK_DIR/output"
+SOURCE_DIR="$ROOT_DIR/upx-src"
+BUILD_BASE="$ROOT_DIR/builds"
+OUTPUT_DIR="$ROOT_DIR/output"
 JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
@@ -183,7 +182,7 @@ build_arch() {
     IFS=: read -r triple cmake_proc <<<"$info"
     local tarball="${triple}.tar.xz"
     local out_file="$OUTPUT_DIR/upx-$arch_key"
-    local log_file="$WORK_DIR/build-$arch.log"
+    local log_file="$ROOT_DIR/build-$arch.log"
 
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
     [[ "$RESUME_MODE" == true && -f "$out_file" ]] && { echo -e "${SLATE}⏭️  Skipping $arch_key${NC}"; return; }
@@ -308,7 +307,7 @@ show_help() {
 
 # ── Main Entry ────────────────────────────────────────────────────────────────
 case "${1:-}" in
-    -C|--clean) echo -e "${OCHRE}💥 Nuking work directory...${NC}"; rm -rf "$WORK_DIR"; exit 0 ;;
+    -C|--clean) echo -e "${OCHRE}💥 Nuking work directory...${NC}"; rm -rf "$ROOT_DIR"; exit 0 ;;
     list) list_output; exit 0 ;;
     verify) verify_static; exit 0 ;;
     test) test_binary "${2:-}"; exit 0 ;;
@@ -330,9 +329,9 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$COMPILER_TYPE" == clang ]]; then
-  TOOLCHAIN_DIR="$WORK_DIR/toolchains/clang"
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
 else
-  TOOLCHAIN_DIR="$WORK_DIR/toolchains/gcc"
+  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
 fi
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
