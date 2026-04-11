@@ -125,11 +125,28 @@ build_arch() {
 
     echo -e "${NEONBLUE}🔨 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
 
-    # 1. Download/Verify
+# 1. Download Toolchain (Sunflower Style)
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
-        echo -n -e "${SLATE}==>${NC} Fetching toolchain... "
-        curl -fSL --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
+        echo -e "${SLATE}==>${NC} Fetching toolchain: ${AQUA}$tarball${NC}"
+        # Use -# for the progress bar and pipe 2>&1 into the sunflower loop
+        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | while IFS= read -d $'\r' -r p; do
+            # Clean up the percentage from curl output
+            p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
+            : ${p:=0} # Default to 0 if empty
+            # Scale to 10 for the Sunflower bar
+            local scaled=$(( p / 10 ))
+            local bar=$(printf "%${scaled}s" | tr ' ' '=')
+            # Print the Sunflower-style status
+            printf "\r${HIGHLIGHTER}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+        done
+        # Check PIPESTATUS[0] (the exit code of curl)
+        if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
+            echo -e "\n${TOMATO}Download failed for $tarball${NC}"
+            rm -f "$tarpath"
+            return 1
+        fi
+        echo -e "" # Move to next line after success
     fi
 
     echo -e "${SLATE}==>${NC} Verifying Integrity..."
@@ -254,7 +271,7 @@ esac
 USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --gcc) COMPILER_TYPE="gcc"; RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/eastwood"; shift ;;
+        --gcc) COMPILER_TYPE="gcc"; RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"; shift ;;
         --clang) COMPILER_TYPE="clang"; shift ;;
         -a|--arch) USER_ARCHS="$2"; shift 2 ;;
         -r|--resume) RESUME_MODE=true; shift ;;
@@ -264,11 +281,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "$COMPILER_TYPE" == clang ]]; then
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
-else
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
-fi
+TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
@@ -307,3 +320,5 @@ for arch in $ARCHS; do
 done
 
 echo -e "\n${HELIOTROPE}🎊 All tasks completed successfully!${NC}"
+echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}$OUTPUT_DIR${NC}"
+ls -F --color=auto "$OUTPUT_DIR"

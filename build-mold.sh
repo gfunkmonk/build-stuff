@@ -74,7 +74,7 @@ done
 DEFAULT_ARCHS="i686 x86_64 aarch64 armv7hf armv6hf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
-TOOLCHAIN_DIR="$ROOT_DIR/toolchains/$COMPILER_TYPE"
+TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
 # ── Logic ─────────────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -105,7 +105,7 @@ build_arch() {
             p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1); : ${p:=0}
             local scaled=$(( p / 10 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '=')
-            printf "\r${AQUA}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+            printf "\r${NEONGREEN}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
         done
         [[ "${PIPESTATUS[0]}" -eq 0 ]] || { echo -e "\n${NEONRED}Download failed.${NC}"; exit 1; }
         echo ""
@@ -175,30 +175,31 @@ build_arch() {
 
 echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
     
-    # Pre-calculate total work based on source files in the mold directory
+    # Recalculate total files (including generated headers/objects)
     local total_files=$(find "$SOURCE_DIR" -name "*.cc" -o -name "*.c" | wc -l)
+    # Give a 10% buffer for generated shim files to keep the denominator realistic
+    total_files=$(( total_files + (total_files / 10) ))
     local current_file=0
 
     set +e
-    # Using 'stdbuf -oL' and forcing 'VERBOSE=1' to see every file being built
+    # Force VERBOSE=1 and stdbuf to ensure every compiler call is caught
     exec 3< <(VERBOSE=1 stdbuf -oL ${BUILD_CMD} -C "$bdir" 2>&1 | tee -a "$log_file")
 
     while read -u 3 -r line; do
-        # Every time we see "Building CXX object" or a similar compiler line
+        # Detect the compiler execution lines
         if [[ "$line" == *"Building"* && "$line" == *".o"* ]]; then
             ((current_file++))
-
-            # Calculate percentage based on file count
+            # Calculate percentage with a 100% cap
             local p=$(( current_file * 100 / total_files ))
-            [[ $p -gt 100 ]] && p=100
+            if [ "$p" -gt 100 ]; then p=100; fi
             local scaled=$(( p / 5 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '#')
-            printf "\r${CHARTREUSE}[%-20s] %3d%%${NC} ${SLATE}(%d/%d)${NC}" "$bar" "$p" "$current_file" "$total_files"
+            # Print the updated bar with the current count
+            printf "\r${CHARTREUSE}[%-20s] %3d%%${NC} ${SLATE}(%d total objects)${NC}" "$bar" "$p" "$current_file"
         fi
     done
     exec 3<&-
     set -e
-    echo ""
 
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
     cmake --build "$bdir" --target install >> "$log_file" 2>&1

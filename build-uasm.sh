@@ -74,12 +74,7 @@ done
 DEFAULT_ARCHS="x86_64 aarch64 i686 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
-if [[ "$COMPILER_TYPE" == clang ]]; then
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
-else
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
-fi
-
+TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
