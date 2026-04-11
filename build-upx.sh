@@ -1,295 +1,318 @@
 #!/usr/bin/env bash
-#
-# Cross-compile UPX using musl-cross toolchains from gfunkmonk/musl-cross
-# Source: https://github.com/gfunkmonk/upx
-# Toolchains: https://github.com/gfunkmonk/musl-cross/releases/tag/eastwood
-#
 
-set -euo pipefail
+# ── Common Code ───────────────────────────────────────────────────────────────
+source "$(dirname "$0")/common.sh"
 
-# Configuration
-UPX_REPO="https://github.com/gfunkmonk/upx.git"
-UPX_BRANCH="devel"
-TOOLCHAIN_BASE_URL="https://github.com/gfunkmonk/musl-cross/releases/download/eastwood"
-WORK_DIR="${PWD}/upx-build"
-TOOLCHAIN_DIR="${WORK_DIR}/toolchains"
-SOURCE_DIR="${WORK_DIR}/upx"
-BUILD_BASE="${WORK_DIR}/builds"
-OUTPUT_DIR="${WORK_DIR}/output"
+# ── Defaults & Config ─────────────────────────────────────────────────────────
+REPO_URL="https://github.com/gfunkmonk/${NAME}.git"
+REPO_BRANCH="devel"
+DL_COLOR="${HIGHLIGHTER}"
+DL_TC_1="${SLATE}"
+DL_TC_2="${NC}"
+DL_TC_3="${AQUA}"
+EX_TC_1="${SLATE}"
+EX_TC_2="${NC}"
+FINAL_C="${HELIOTROPE}"
+CLEAN_C="${OCHRE}"
+GIT_C="${SLATE}"
+GIT_C2="${NC}"
 
-# Architectures to build (add/remove as needed)
-# Format: "triple:cmake_system_processor"
-#
-# Uncomment to add more architectures
-declare -a ARCHITECTURES=(
-#    "i386-unknown-linux-musl:i386"
-#    "i486-unknown-linux-musl:i486"
-#    "i586-unknown-linux-musl:i586"
-    "i686-unknown-linux-musl:i686"
-#    "x86_64-unknown-linux-musl:x86_64"
-#    "armv5-unknown-linux-musleabi:armv5"
-#    "armv6-unknown-linux-musleabi:armv6"
-#    "armv6-unknown-linux-musleabihf:armv6"
-#    "armv7-unknown-linux-musleabi:armv7"
-    "armv7-unknown-linux-musleabihf:armv7"
-#    "aarch64-unknown-linux-musl:aarch64"
-#    "mips-unknown-linux-musl:mips"
-    "mips-unknown-linux-muslsf:mips"
-#    "mips64-unknown-linux-musl:mips64"
-#    "mips64el-unknown-linux-musl:mips64el"
-#    "mipsel-unknown-linux-musl:mipsel"
-#    "mipsel-unknown-linux-muslsf:mipsel"
-#    "powerpc-unknown-linux-musl:powerpc"
-#    "powerpc-unknown-linux-muslsf:powerpc"
-#    "powerpc64-unknown-linux-musl:ppc64"
-#    "powerpc64le-unknown-linux-musl:ppc64le"
-#    "powerpcle-unknown-linux-musl:powerpcle"
-#    "powerpcle-unknown-linux-muslsf:powerpcle"
-#    "riscv32-unknown-linux-musl:riscv32"
-#    "riscv64-unknown-linux-musl:riscv64"
-#    "loongarch64-unknown-linux-musl:loongarch64"
-#    "m68k-unknown-linux-musl:m68k"
-#    "microblaze-xilinx-linux-musl:microblaze"
-#    "microblazeel-xilinx-linux-musl:microblazeel"
-#    "or1k-unknown-linux-musl:or1k"
-#    "s390x-ibm-linux-musl:s390x"
-#    "sh4-multilib-linux-musl:sh4"
-)
+# ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
+if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+  declare -A ARCH_INFO=(
+    [i386]="i586-unknown-linux-musl:i586"
+    [i486]="i686-unknown-linux-musl:i686"
+    [i586]="i586-unknown-linux-musl:i586"
+    [i686]="i686-unknown-linux-musl:i686"
+    [x86_64]="x86_64-unknown-linux-musl:x86_64"
+    [arm]="arm-unknown-linux-musleabi:arm"
+    [armhf]="arm-unknown-linux-musleabihf:arm"
+    [armv5]="armv5-unknown-linux-musleabi:armv5"
+    [armv6]="armv6-unknown-linux-musleabi:arm"
+    [armv6hf]="armv6-unknown-linux-musleabihf:arm"
+    [armv7]="armv7-unknown-linux-musleabi:armv7"
+    [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+    [aarch64]="aarch64-unknown-linux-musl:aarch64"
+    [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+    [m68k]="m68k-unknown-linux-musl:m68k"
+    [mips]="mips-unknown-linux-musl:mips"
+    [mips-sf]="mips-unknown-linux-muslsf:mips"
+    [mips64]="mips64-unknown-linux-musl:mips64"
+    [mips64el]="mips64el-unknown-linux-musl:mips64el"
+    [mipsel]="mipsel-unknown-linux-musl:mipsel"
+    [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+    [or1k]="or1k-unknown-linux-musl:or1k"
+    [powerpc]="powerpc-unknown-linux-musl:powerpc"
+    [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
+    [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+    [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
+    [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+    [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+    [riscv32]="riscv32-unknown-linux-musl:riscv32"
+    [riscv64]="riscv64-unknown-linux-musl:riscv64"
+    [s390x]="s390x-ibm-linux-musl:s390x"
+    [sh4]="sh4-multilib-linux-musl:sh4")
+else
+  declare -A ARCH_INFO=(
+    [i586]="i586-unknown-linux-musl:i586"
+    [i686]="i686-unknown-linux-musl:i686"
+    [x86_64]="x86_64-unknown-linux-musl:x86_64"
+    [arm]="arm-unknown-linux-musleabi:arm"
+    [armhf]="arm-unknown-linux-musleabihf:arm"
+    [armv7]="armv7-unknown-linux-musleabi:armv7"
+    [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+    [aarch64]="aarch64-unknown-linux-musl:aarch64"
+    [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+    [m68k]="m68k-unknown-linux-musl:m68k"
+    [mips]="mips-unknown-linux-musl:mips"
+    [mips-sf]="mips-unknown-linux-muslsf:mips"
+    [mips64]="mips64-unknown-linux-musl:mips64"
+    [mips64el]="mips64el-unknown-linux-musl:mips64el"
+    [mipsel]="mipsel-unknown-linux-musl:mipsel"
+    [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+    [or1k]="or1k-unknown-linux-musl:or1k"
+    [powerpc]="powerpc-unknown-linux-musl:powerpc"
+    [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+    [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+    [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+    [riscv32]="riscv32-unknown-linux-musl:riscv32"
+    [riscv64]="riscv64-unknown-linux-musl:riscv64"
+    [s390x]="s390x-ibm-linux-musl:s390x")
+fi
 
-# Color output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# ── Helper Subcommands ────────────────────────────────────────────────────────
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $*"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $*"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $*" >&2
-}
-
-die() {
-    log_error "$@"
-    exit 1
-}
-
-check_dependencies() {
-    local missing=()
-
-    for cmd in git cmake make wget tar xz; do
-        if ! command -v "$cmd" &>/dev/null; then
-            missing+=("$cmd")
-        fi
+list_output() {
+    echo -e "${HELIOTROPE}📂 Currently Built Binaries:${NC}"
+    local found=false
+    for bin in "$OUTPUT_DIR"/upx-*; do
+        [[ -f "$bin" ]] || continue
+        found=true
+        ls -lh "$bin"
     done
-
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        die "Missing dependencies: ${missing[*]}"
-    fi
-
-    # Check CMake version
-    local cmake_version
-    cmake_version=$(cmake --version | head -n1 | grep -oP '\d+\.\d+' || echo "0.0")
-    if ! awk -v ver="$cmake_version" 'BEGIN { exit (ver < 3.13) }'; then
-        die "CMake 3.13+ required, found: $cmake_version"
-    fi
+    [[ "$found" == false ]] && echo -e "${SLATE}No artifacts found.${NC}"
 }
 
-setup_directories() {
-    log_info "Setting up directories..."
-    mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
-}
-
-clone_upx() {
-    if [[ -d "$SOURCE_DIR" ]]; then
-        log_info "UPX source already exists, updating..."
-        git -C "$SOURCE_DIR" fetch origin
-        git -C "$SOURCE_DIR" checkout "$UPX_BRANCH"
-        git -C "$SOURCE_DIR" pull
-    else
-        log_info "Cloning UPX repository..."
-        git clone --branch "$UPX_BRANCH" "$UPX_REPO" "$SOURCE_DIR" --depth=1
-    fi
-
-    # Initialize submodules if any
-    git -C "$SOURCE_DIR" submodule update --init --recursive
-}
-
-download_toolchain() {
-    local triple=$1
-    local tarball="${triple}.tar.xz"
-    local toolchain_path="${TOOLCHAIN_DIR}/${triple}"
-
-    if [[ -d "$toolchain_path" ]]; then
-        log_info "Toolchain $triple already exists, skipping download"
-        return 0
-    fi
-
-    log_info "Downloading toolchain: $triple"
-    local url="${TOOLCHAIN_BASE_URL}/${tarball}"
-    local tmpfile="${TOOLCHAIN_DIR}/${tarball}"
-
-    if ! wget -q --show-progress -O "$tmpfile" "$url"; then
-        log_error "Failed to download $tarball"
-        rm -f "$tmpfile"
-        return 1
-    fi
-
-    log_info "Extracting toolchain: $triple"
-    mkdir -p "$toolchain_path"
-    if ! tar -xJf "$tmpfile" -C "$toolchain_path" --strip-components=1; then
-        log_error "Failed to extract $tarball"
-        rm -rf "$toolchain_path" "$tmpfile"
-        return 1
-    fi
-
-    rm -f "$tmpfile"
-    log_info "Toolchain ready: $triple"
-}
-
-build_upx() {
-    local arch_spec=$1
-    local triple="${arch_spec%%:*}"
-    local cmake_proc="${arch_spec##*:}"
-
-    log_info "Building UPX for $triple"
-
-    # Download toolchain
-    if ! download_toolchain "$triple"; then
-        log_warn "Skipping $triple due to toolchain download failure"
-        return 1
-    fi
-
-    local toolchain_path="${TOOLCHAIN_DIR}/${triple}"
-    local build_dir="${BUILD_BASE}/${triple}"
-    local toolchain_file="${build_dir}/toolchain.cmake"
-
-    # Clean previous build
-    rm -rf "$build_dir"
-    mkdir -p "$build_dir"
-
-    # Generate CMake toolchain file
-    log_info "Generating CMake toolchain file for $triple"
-    cat > "$toolchain_file" << EOF
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR ${cmake_proc})
-
-set(CMAKE_C_COMPILER ${toolchain_path}/bin/${triple}-gcc)
-set(CMAKE_CXX_COMPILER ${toolchain_path}/bin/${triple}-g++)
-set(CMAKE_AR ${toolchain_path}/bin/${triple}-ar)
-set(CMAKE_RANLIB ${toolchain_path}/bin/${triple}-ranlib)
-set(CMAKE_STRIP ${toolchain_path}/bin/${triple}-strip)
-
-set(CMAKE_FIND_ROOT_PATH ${toolchain_path}/${triple})
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
-# Static linking
-set(CMAKE_EXE_LINKER_FLAGS "-Wl,--gc-sections -static")
-set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--gc-sections -static")
-
-# Additional flags for musl
-set(CMAKE_C_FLAGS "\${CMAKE_C_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector")
-set(CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS} -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-stack-protector")
-EOF
-
-    # Configure with CMake
-    log_info "Configuring CMake for $triple"
-    if ! cmake -S "$SOURCE_DIR" -B "$build_dir" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
-        -DUPX_CONFIG_DISABLE_GITREV=ON \
-        -DUPX_CONFIG_DISABLE_WSTRICT=ON \
-        -DUSE_STRICT_DEFAULTS=OFF \
-        -DUPX_CONFIG_REQUIRE_THREADS=ON \
-        -DCMAKE_VERBOSE_MAKEFILE=OFF; then
-        log_error "CMake configuration failed for $triple"
-        return 1
-    fi
-
-    # Build
-    log_info "Compiling UPX for $triple"
-    if ! cmake --build "$build_dir" --parallel "$(nproc 2>/dev/null || echo 2)"; then
-        log_error "Build failed for $triple"
-        return 1
-    fi
-
-    # Find and copy the binary
-    local upx_binary
-    upx_binary=$(find "$build_dir" -name upx -type f -executable | head -n1)
-
-    if [[ -z "$upx_binary" ]] || [[ ! -x "$upx_binary" ]]; then
-        log_error "UPX binary not found for $triple"
-        return 1
-    fi
-
-    # Copy to output
-    local output_file="${OUTPUT_DIR}/upx-${triple}"
-    cp "$upx_binary" "$output_file"
-
-    # Strip the binary
-    if [[ -x "${toolchain_path}/bin/${triple}-strip" ]]; then
-        "${toolchain_path}/bin/${triple}-strip" "$output_file"
-    fi
-
-    # Show info
-    local size
-    size=$(du -h "$output_file" | cut -f1)
-    log_info "Built $triple: $output_file ($size)"
-
-    # Verify it's actually static
-    if command -v file &>/dev/null; then
-        file "$output_file" | grep -q "statically linked" && \
-            log_info "Confirmed: statically linked" || \
-            log_warn "Warning: may not be statically linked"
-    fi
-
-    return 0
-}
-
-main() {
-    log_info "UPX Cross-Compilation Build Script"
-    log_info "===================================="
-
-    check_dependencies
-    setup_directories
-    clone_upx
-
-    local success=0
-    local failed=0
-    local -a failed_archs=()
-
-    for arch_spec in "${ARCHITECTURES[@]}"; do
-        local triple="${arch_spec%%:*}"
-
-        if build_upx "$arch_spec"; then
-            success=$((success + 1))
+verify_static() {
+    echo -e "${AQUA}🔍 Verifying Static Integrity...${NC}"
+    for bin in "$OUTPUT_DIR"/upx-*; do
+        [[ -f "$bin" ]] || continue
+        if file "$bin" | grep -q "statically linked"; then
+            echo -e "${NEONGREEN}✓${NC} $(basename "$bin")"
         else
-            failed=$((failed + 1))
-            failed_archs+=("$triple")
+            echo -e "${TOMATO}✗ $(basename "$bin") - DYNAMIC LINK DETECTED${NC}"
         fi
     done
-
-    log_info "===================================="
-    log_info "Build Summary:"
-    log_info "  Successful: $success"
-    log_info "  Failed: $failed"
-
-    if [[ $failed -gt 0 ]]; then
-        log_warn "Failed architectures: ${failed_archs[*]}"
-    fi
-
-    if [[ $success -gt 0 ]]; then
-        log_info "Output directory: $OUTPUT_DIR"
-        ls -lh "$OUTPUT_DIR"
-    fi
-
-    [[ $success -gt 0 ]] && exit 0 || exit 1
 }
-main "$@"
+
+test_binary() {
+    local bin_name="$1"
+    local bin_path="$OUTPUT_DIR/$bin_name"
+
+    if [[ -z "$bin_name" ]]; then
+        echo -e "${OCHRE}Usage: $0 test <binary-name>${NC}"
+        return 1
+    fi
+
+    if [[ ! -f "$bin_path" ]]; then
+        echo -e "${TOMATO}Error: Binary not found: $bin_path${NC}"
+        return 1
+    fi
+
+    echo -e "${HELIOTROPE}🧪 Testing Execution: ${BWHITE}$bin_name${NC}"
+
+    # Determine emulation requirement
+    local qemu_bin=""
+    if   [[ "$bin_name" =~ aarch64 ]]; then qemu_bin="qemu-aarch64-static"
+    elif [[ "$bin_name" =~ armv[5-7]|arm- ]]; then qemu_bin="qemu-arm-static"
+    elif [[ "$bin_name" =~ riscv64 ]]; then qemu_bin="qemu-riscv64-static"
+    elif [[ "$bin_name" =~ riscv32 ]]; then qemu_bin="qemu-riscv32-static"
+    elif [[ "$bin_name" =~ mips64el ]]; then qemu_bin="qemu-mips64el-static"
+    elif [[ "$bin_name" =~ mips64 ]]; then qemu_bin="qemu-mips64-static"
+    elif [[ "$bin_name" =~ mipsel ]]; then qemu_bin="qemu-mipsel-static"
+    elif [[ "$bin_name" =~ mips ]]; then qemu_bin="qemu-mips-static"
+    elif [[ "$bin_name" =~ ppc64le ]]; then qemu_bin="qemu-ppc64le-static"
+    elif [[ "$bin_name" =~ ppc64 ]]; then qemu_bin="qemu-ppc64-static"
+    elif [[ "$bin_name" =~ s390x ]]; then qemu_bin="qemu-s390x-static"
+    elif [[ "$bin_name" =~ loongarch64 ]]; then qemu_bin="qemu-loongarch64-static"
+    elif [[ "$bin_name" =~ m68k ]]; then qemu_bin="qemu-m68k-static"
+    elif [[ "$bin_name" =~ sh4 ]]; then qemu_bin="qemu-sh4-static"
+    fi
+
+    if [[ -n "$qemu_bin" ]]; then
+        if command -v "$qemu_bin" &>/dev/null; then
+            echo -e "${SLATE}==>${NC} Emulating via ${AQUA}$qemu_bin${NC}..."
+            "$qemu_bin" "$bin_path" --version | head -n1
+        else
+            echo -e "${TOMATO}Error: $qemu_bin not installed. Cannot test cross-arch binary.${NC}"
+            return 1
+        fi
+    else
+        echo -e "${SLATE}==>${NC} Running natively..."
+        "$bin_path" --version | head -n1 || echo -e "${OCHRE}Native execution failed.${NC}"
+    fi
+}
+
+# ── Build Logic ───────────────────────────────────────────────────────────────
+
+build_arch() {
+    local arch_key="$1"
+    local info="${ARCH_INFO[$arch_key]:-}"
+
+    # Validation check for the arch key
+    [[ -z "$info" ]] && { echo -e "${TOMATO}Unknown architecture: $arch_key${NC}"; return 1; }
+
+    IFS=: read -r triple cmake_proc <<<"$info"
+    local tarball="${triple}.tar.xz"
+    local out_file="$OUTPUT_DIR/upx-$arch_key"
+    local log_file="$ROOT_DIR/build-$arch_key.log"
+
+    echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
+    [[ "$RESUME_MODE" == true && -f "$out_file" ]] && { echo -e "${SLATE}⏭️  Skipping $arch_key${NC}"; return; }
+
+    echo -e "${NEONBLUE}🔨 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
+
+    # 1. Download Toolchain
+    local tarpath="$TOOLCHAIN_DIR/$tarball"
+    download_toolchain "$tarpath" "$tarball" || return 1
+
+    echo -e "${SLATE}==>${NC} Verifying Integrity..."
+    verify_hash "$tarpath" "$tarball" || exit 1
+
+    # 2. Extract
+    local extract_path="$TOOLCHAIN_DIR/$triple"
+    extract_toolchain "$tarpath" "$triple" || return 1
+
+    # 3. Build Setup
+    local bin_dir="$extract_path/bin"
+    local bdir="$BUILD_BASE/$arch_key"
+    rm -rf "$bdir" && mkdir -p "$bdir"
+
+    # 3.5 The "Motorola 68000" Survival Kit
+    if [[ "$arch_key" == "m68k" ]]; then
+      echo -e "${OCHRE}==>${NC} Patching m68k alignment landmines... "
+      # Kill the check in the CMake try_compile
+      sed -i 's/static_assert(alignof/ \/\/ static_assert(alignof/g' "$SOURCE_DIR/misc/cmake/try_compile/types_abi.cpp"
+      # Kill the checks in the utility header
+      sed -i 's/static_assert(alignof/ \/\/ static_assert(alignof/g' "$SOURCE_DIR/src/util/cxxlib.h"
+    fi
+
+    # 4. Compile with Error Logging
+    echo -n -e "${SLATE}==>${NC} Configuring CMake... "
+
+    if cmake -S "$SOURCE_DIR" -B "$bdir" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_SYSTEM_NAME=Linux \
+        -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
+        -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_TYPE}" \
+        -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
+        -DCMAKE_EXE_LINKER_FLAGS="-static" \
+        -DUPX_CONFIG_DISABLE_GITREV=ON \
+        -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
+        > "$log_file" 2>&1; then
+        echo -e "${NEONGREEN}Done${NC}"
+    else
+        echo -e "${TOMATO}FAILED${NC}"
+        echo -e "${OCHRE}Check $log_file for details.${NC}"
+        return 1
+    fi
+    echo -n -e "${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}[  0%]${NC}"
+    cmake --build "$bdir" --parallel "$JOBS" 2>&1 | tee -a "$log_file" | \
+    grep --line-buffered -o '\[.*%\]' | \
+    while read -r line; do
+        echo -ne "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}$line${NC}"
+    done
+    local pipe_status=("${PIPESTATUS[@]}")
+    if [[ "${pipe_status[0]}" -eq 0 ]]; then
+        echo -e "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${NEONGREEN}Done  ${NC}"
+    else
+        echo -e "\n${TOMATO}FAILED${NC}"
+        return 1
+    fi
+
+    # 5. Finalize
+    local bin_found; bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
+    if [[ -z "$bin_found" ]]; then
+        echo -e "${TOMATO}Error: Binary not found after successful build!${NC}"
+        return 1
+    fi
+
+    cp "$bin_found" "$out_file"
+    "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
+    echo -e "${NEONGREEN}✅ Build Success:${NC} ${BWHITE}upx-$arch_key${NC} (${AQUA}$(du -sh "$out_file" | awk '{print $1}')${NC})"
+}
+
+# ── Usage ─────────────────────────────────────────────────────────────────────
+show_help() {
+    echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  ${BWHITE}UPX CROSS-BUILD ENGINE${NC} [${AQUA}${REPO_BRANCH}${NC}]"
+    echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BWHITE}USAGE:${NC}"
+    echo -e "  $0 [OPTIONS] [COMMANDS]"
+    echo ""
+    echo -e "${BWHITE}OPTIONS:${NC}"
+    echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains"
+    echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains (default)"
+    echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
+    echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
+    echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
+    echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds and source"
+    echo ""
+    echo -e "${BWHITE}COMMANDS:${NC}"
+    echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"
+    echo -e "  ${NEONPURPLE}verify${NC}              Check if binaries are truly statically linked"
+    echo -e "  ${NEONPURPLE}test <bin>${NC}          Run binary via QEMU or native"
+    echo ""
+    echo -e "${BWHITE}EXAMPLES:${NC}"
+    echo -e "  $0 --gcc --arch \"x86_64 aarch64\""
+    echo -e "  $0 test upx-aarch64"
+    echo -e "  $0 --resume"
+    echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    exit 0
+}
+
+# ── Main Entry ────────────────────────────────────────────────────────────────
+case "${1:-}" in
+    list) list_output; exit 0 ;;
+    verify) verify_static; exit 0 ;;
+    test) test_binary "${2:-}"; exit 0 ;;
+    --help|-h) show_help ;;
+esac
+
+# Flag Parsing
+while [[ $# -gt 0 ]]; do
+    if parse_common_flag "$@"; then
+        shift "$COMMON_SHIFT"
+        continue
+    fi
+    case "$1" in
+        -h|--help) show_help ;;
+        *) echo -e "${TOMATO}Unknown option: $1${NC}"; show_help ;;
+    esac
+done
+
+setup_toolchain_dir
+
+echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
+mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
+
+git_clone
+
+# Check if submodules are empty and fix them if needed
+if [[ -z "$(ls -A "$SOURCE_DIR/vendor/ucl" 2>/dev/null)" ]]; then
+    echo -n -e "${OCHRE}==>${NC} Submodules missing. Repairing... "
+    git -C "$SOURCE_DIR" submodule update --init --recursive > /dev/null 2>&1
+    echo -e "${NEONGREEN}Fixed${NC}"
+fi
+
+if [[ -z "$USER_ARCHS" ]]; then
+    ARCHS=$(echo "${!ARCH_INFO[@]}" | tr ' ' '\n' | sort | tr '\n' ' ')
+else
+    ARCHS="$USER_ARCHS"
+fi
+
+echo -e "${SLATE}Queueing ${BWHITE}$(echo $ARCHS | wc -w)${NC} targets...${NC}\n"
+
+build_all_archs
+
+final
