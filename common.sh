@@ -122,6 +122,10 @@ verify_hash() {
     [[ "$COMPILER_TYPE" == "gcc" ]] && expected="${HASHES_GCC[$tarball]}" || expected="${HASHES_CLANG[$tarball]}"
     local actual
     actual=$(sha256sum "$tarpath" | awk '{print $1}')
+    if [[ -z "$expected" ]]; then
+        echo -e "${TOMATO}CRITICAL: No known hash for $tarball (COMPILER_TYPE=$COMPILER_TYPE)${NC}"
+        return 1
+    fi
     if [[ "$actual" != "$expected" ]]; then
         echo -e "${TOMATO}CRITICAL: Hash mismatch for $tarball!${NC}"
         echo -e "Expected: $expected\nGot: $actual"
@@ -138,7 +142,7 @@ extract_toolchain() {
     if [[ ! -d "$extract_path" ]]; then
         echo -e "${SLATE}==>${NC} Extracting toolchain..."
         mkdir -p "$extract_path"
-        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR"
+        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR" || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
         [[ -d "$extract_path" ]] || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
     else
         echo -e "${MINT}✨ Toolchain already extracted.${NC}"
