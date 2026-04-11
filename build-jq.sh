@@ -105,14 +105,15 @@ build_arch() {
     local strip="$bin_dir/${triple}-strip"
 
     # 4. Configure (Autotools style)
-    #echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running Autogen...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running Autogen...${NC}"
     cd "$SOURCE_DIR"
     
     # Ensure fresh start
     make distclean >/dev/null 2>&1 || true
 
     # JQ requires oniguruma sub-config
-    #autoreconf -if > "$log_file" 2>&1
+    local oniguruma_build_log="$ROOT_DIR/oniguruma-build-$arch_key.log"
+    autoreconf -if > "$log_file" 2>&1
 
     echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running Configure...${NC}"
     CC="$cc -static" ./configure \
@@ -123,7 +124,7 @@ build_arch() {
         --disable-valgrind \
         --with-oniguruma=builtin \
         CFLAGS="${CFLAGS}" \
-        LDFLAGS="-static" > "$log_file" 2>&1 || {
+        LDFLAGS="-static" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
@@ -136,8 +137,8 @@ build_arch() {
 
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
     # Oniguruma phase
-    make -j"$JOBS" -C vendor/oniguruma >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" "$total_onig" "${HELIOTROPE}" "$SOURCE_DIR/vendor/oniguruma/src:*.lo"
+    make -j"$JOBS" -C vendor/oniguruma >> "$oniguruma_build_log" 2>&1 &
+    track_progress $! "$oniguruma_build_log" "make-files" "$total_onig" "${HELIOTROPE}" "$SOURCE_DIR/vendor/oniguruma/src:*.lo"
 
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
     # JQ phase
