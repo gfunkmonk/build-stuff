@@ -13,7 +13,7 @@ DL_TC_3="${AQUA}"
 EX_TC_1="${SLATE}"
 EX_TC_2="${NC}"
 EX_TC_3="${MINT}"
-FINAL_C="${HELIOTROPE}"
+FINAL_C="${HIGHLIGHTER}"
 CLEAN_C="${OCHRE}"
 GIT_C="${SLATE}"
 GIT_C2="${NC}"
@@ -126,21 +126,22 @@ test_binary() {
 
     # Determine emulation requirement
     local qemu_bin=""
-    if   [[ "$bin_name" =~ aarch64 ]]; then qemu_bin="qemu-aarch64-static"
-    elif [[ "$bin_name" =~ armv[5-7]|arm- ]]; then qemu_bin="qemu-arm-static"
-    elif [[ "$bin_name" =~ riscv64 ]]; then qemu_bin="qemu-riscv64-static"
-    elif [[ "$bin_name" =~ riscv32 ]]; then qemu_bin="qemu-riscv32-static"
-    elif [[ "$bin_name" =~ mips64el ]]; then qemu_bin="qemu-mips64el-static"
-    elif [[ "$bin_name" =~ mips64 ]]; then qemu_bin="qemu-mips64-static"
-    elif [[ "$bin_name" =~ mipsel ]]; then qemu_bin="qemu-mipsel-static"
-    elif [[ "$bin_name" =~ mips ]]; then qemu_bin="qemu-mips-static"
-    elif [[ "$bin_name" =~ ppc64le ]]; then qemu_bin="qemu-ppc64le-static"
-    elif [[ "$bin_name" =~ ppc64 ]]; then qemu_bin="qemu-ppc64-static"
-    elif [[ "$bin_name" =~ s390x ]]; then qemu_bin="qemu-s390x-static"
-    elif [[ "$bin_name" =~ loongarch64 ]]; then qemu_bin="qemu-loongarch64-static"
-    elif [[ "$bin_name" =~ m68k ]]; then qemu_bin="qemu-m68k-static"
-    elif [[ "$bin_name" =~ sh4 ]]; then qemu_bin="qemu-sh4-static"
-    fi
+    case "$bin_name" in
+        *aarch64*)     qemu_bin="qemu-aarch64-static" ;;
+        *armv[5-7]*|*arm-*) qemu_bin="qemu-arm-static" ;;
+        *riscv64*)     qemu_bin="qemu-riscv64-static" ;;
+        *riscv32*)     qemu_bin="qemu-riscv32-static" ;;
+        *mips64el*)    qemu_bin="qemu-mips64el-static" ;;
+        *mips64*)      qemu_bin="qemu-mips64-static" ;;
+        *mipsel*)      qemu_bin="qemu-mipsel-static" ;;
+        *mips*)        qemu_bin="qemu-mips-static" ;;
+        *ppc64le*)     qemu_bin="qemu-ppc64le-static" ;;
+        *ppc64*)       qemu_bin="qemu-ppc64-static" ;;
+        *s390x*)       qemu_bin="qemu-s390x-static" ;;
+        *loongarch64*) qemu_bin="qemu-loongarch64-static" ;;
+        *m68k*)        qemu_bin="qemu-m68k-static" ;;
+        *sh4*)         qemu_bin="qemu-sh4-static" ;;
+    esac
 
     if [[ -n "$qemu_bin" ]]; then
         if command -v "$qemu_bin" &>/dev/null; then
@@ -222,18 +223,8 @@ build_arch() {
         return 1
     fi
     echo -n -e "${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}[  0%]${NC}"
-    cmake --build "$bdir" --parallel "$JOBS" 2>&1 | tee -a "$log_file" | \
-    grep --line-buffered -o '\[.*%\]' | \
-    while read -r line; do
-        echo -ne "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}$line${NC}"
-    done
-    local pipe_status=("${PIPESTATUS[@]}")
-    if [[ "${pipe_status[0]}" -eq 0 ]]; then
-        echo -e "\r${SLATE}==>${NC} Compiling ($JOBS jobs): ${NEONGREEN}Done  ${NC}"
-    else
-        echo -e "\n${TOMATO}FAILED${NC}"
-        return 1
-    fi
+    cmake --build "$bdir" --target upx -j "$JOBS" > "$log_file" 2>&1 &
+    track_progress $! "$log_file" "cmake" 100 "${SKY}"
 
     # 5. Finalize
     local bin_found; bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
@@ -264,6 +255,7 @@ show_help() {
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
     echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds and source"
     echo -e "  ${NEONBLUE}--list-archs${NC}        Print all available target architectures"
+    echo -e "                       (Use with --gcc or --clang)"
     echo ""
     echo -e "${BWHITE}COMMANDS:${NC}"
     echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"

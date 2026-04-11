@@ -255,6 +255,86 @@ extract_toolchain() {
     fi
 }
 
+# ── Robust Unified Progress Tracker ──────────────────────────────────────────
+track_progress() {
+    local pid=$1
+    local log=$2
+    local mode=$3
+    local total=${4:-100}
+    local color=$5
+    local extra=${6:-}
+
+    local current=0
+    local pct=0
+    local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local i=0
+
+    # Ensure log exists so grep doesn't error
+    touch "$log"
+
+    # Loop while the process is running
+    while kill -0 "$pid" 2>/dev/null; do
+        i=$(( (i + 1) % ${#spin[@]} ))
+        
+        case "$mode" in
+            ninja)
+                # Ninja often needs -v to print progress to files
+                local last=$(grep -o '\[[0-9]*/[0-9]*\]' "$log" | tail -1)
+                if [[ "$last" =~ \[([0-9]+)/([0-9]+)\] ]]; then
+                    current=${BASH_REMATCH[1]}
+                    total=${BASH_REMATCH[2]}
+                fi
+                ;;
+            cmake)
+                local last=$(grep -o '\[[[:space:]]*[0-9]*%\]' "$log" | tail -1)
+                if [[ "$last" =~ ([0-9]+)% ]]; then
+                    current=${BASH_REMATCH[1]}
+                    total=100
+                fi
+                ;;
+            make-files)
+                # Extra format: "path:extension" (e.g. "src:*.o")
+                local search_dir="${extra%%:*}"
+                local pattern="${extra##*:}"
+                current=$(find "$search_dir" -name "$pattern" 2>/dev/null | wc -l)
+                ;;
+            grep-count)
+                current=$(grep -c "$extra" "$log" 2>/dev/null || true)
+                ;;
+        esac
+
+        # Calculate percentage safely
+        if (( total > 0 )); then
+            pct=$(( current * 100 / total ))
+        else
+            pct=0
+        fi
+        
+        [[ $pct -gt 100 ]] && pct=100
+
+        # Draw the bar
+        local bar_size=20
+        local filled=$(( pct * bar_size / 100 ))
+        local empty=$(( bar_size - filled ))
+        local bar_str=$(printf "%${filled}s" | tr ' ' '#')
+        local space_str=$(printf "%${empty}s")
+
+        # \r moves cursor to start, \e[K clears the line
+        printf "\r${color}%s [ %s%s ] %3d%% (%s/%s)${NC}\e[K" \
+            "${spin[$i]}" "$bar_str" "$space_str" "$pct" "$current" "$total"
+        
+        sleep 0.2
+    done
+
+    # Final cleanup: Wait for process to get exit code
+    wait "$pid"
+    local exit_val=$?
+    
+    # Clear the progress line
+    printf "\r\e[K"
+    return $exit_val
+}
+
 # ── Binary Architecture Verification ─────────────────────────────────────────
 # Verify that a built binary's ELF machine type matches the expected target.
 # Usage: verify_binary_arch <binary_path> <triple>
@@ -263,23 +343,26 @@ extract_toolchain() {
 verify_binary_arch() {
     local bin="$1"
     local triple="$2"
+    local readelf_cmd="readelf"
+    local cross_readelf="${TOOLCHAIN_DIR}/${triple}/bin/${triple}-readelf"
 
-    if ! command -v readelf &>/dev/null; then
+    if command -v "$cross_readelf" &>/dev/null; then
+        readelf_cmd="$cross_readelf"
+    elif ! command -v readelf &>/dev/null; then
         echo -e "${SLATE}  (readelf not found — skipping arch verification)${NC}"
         return 0
     fi
 
-    local machine; machine=$(readelf -h "$bin" 2>/dev/null | awk -F: '/Machine/{gsub(/^[[:space:]]+/,"",$2); print $2}')
+    local machine; machine=$("$readelf_cmd" -h "$bin" 2>/dev/null | awk -F: '/Machine/{gsub(/^[[:space:]]+/,"",$2); print $2}')
 
-    # Map triple prefix → expected readelf Machine string
-    local arch="${triple%%-*}"   # e.g. "aarch64" from "aarch64-unknown-linux-musl"
+    local arch="${triple%%-*}"
     local expected
     case "$arch" in
         aarch64)              expected="AArch64" ;;
         armv[5-7]|arm)        expected="ARM" ;;
         x86_64)               expected="Advanced Micro Devices X86-64" ;;
         i[3-6]86)             expected="Intel 80386" ;;
-        mips64*)              expected="MIPS R3000" ;;   # readelf reports MIPS for all MIPS
+        mips64*)              expected="MIPS R3000" ;;
         mips*)                expected="MIPS R3000" ;;
         riscv64)              expected="RISC-V" ;;
         riscv32)              expected="RISC-V" ;;

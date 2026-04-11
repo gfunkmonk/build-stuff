@@ -13,7 +13,7 @@ DL_TC_3="${CANARY}"
 EX_TC_1="${MAUVE}"
 EX_TC_2="${NC}"
 EX_TC_3="${MINT}"
-FINAL_C="${NEONGREEN}"
+FINAL_C="${HELIOTROPE}"
 CLEAN_C="${TOMATO}"
 GIT_C="${MAUVE}"
 GIT_C2="${NC}"
@@ -92,15 +92,15 @@ build_arch() {
 
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
-    download_toolchain "$tarpath" "$tarball" || exit 1
+    download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
     echo -e "${CORAL}🛡️  Verifying Integrity...${NC}"
-    verify_hash "$tarpath" "$tarball" || exit 1
+    verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction
     local extract_path="$TOOLCHAIN_DIR/$triple"
-    extract_toolchain "$tarpath" "$triple" || exit 1
+    extract_toolchain "$tarpath" "$triple" || return 1
 
     # 4. Compiler Path Setup
     local bin_dir="$extract_path/bin"
@@ -122,38 +122,21 @@ build_arch() {
     local relative_log1="${log_file#"$ROOT_DIR/"}"
     local relative_log="${NAME}-build/$relative_log1"
 
+    # Specific fix for i686/32-bit targets
+    local ARCH_FLAGS=""
+    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32"
+
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
 
-    local total_files; total_files=$(find "$build_work_dir" -name "*.c" | wc -l)
-    local current_file=0
-    printf "\r${CYAN}[%-50s]   0%% (${CANARY}0/%d${NC})" "" "$total_files"
+    # Start the build
+    make -C "$build_work_dir" -f "$MAKEFILE" \
+        CC="$cc_bin ${CFLAGS} ${ARCH_FLAGS}" \
+        STRIP="$strip_bin" \
+        -j"$JOBS" > "$log_file" 2>&1 &
 
-    set +e
-    make -C "$build_work_dir" -f "$MAKEFILE" CC="$cc_bin ${CFLAGS}" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
-    while IFS= read -r line; do
-        if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
-            ((current_file++)) || true
-            # If actual steps exceed the dry-run estimate, extend the ceiling so
-            # the bar never shows nonsense like "112/70" or stalls at 99%.
-            [[ $current_file -gt $total_files ]] && total_files=$(( current_file + 3 ))
-            local percent=$(( current_file * 105 / total_files ))
-            [[ $percent -gt 99 ]] && percent=99
-            local num_hashes=$(( percent / 2 ))
-            local hashes; hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
-            printf "\r${CYAN}[%-50s] %3d%% ${NC}(${CANARY}%d/%d${NC})" \
-                "$hashes" "$percent" "$current_file" "$total_files"
-        fi
-    done
-    local make_exit=${PIPESTATUS[0]}
-    set -e
-    printf "\r${CYAN}[%-50s] 100%% ${NC}(${CANARY}Done${NC})%20s\n" \
-        "##################################################" ""
-
-    if [[ "$make_exit" -ne 0 ]]; then
-        echo -e "${CRIMSON}Build failed! Check log: $log_file${NC}"
-        return 1
-    fi
+    # Track by counting .o files in the build directory
+    track_progress $! "$log_file" "make-files" 75 "${CYAN}" "$build_work_dir:*.o"
 
     # 7. Finalize
     local generated_bin=""
@@ -162,7 +145,7 @@ build_arch() {
 
     if [[ -z "$generated_bin" ]]; then
         echo -e "${CRIMSON}Error: Binary not found after build!${NC}"
-        exit 1
+        return 1
     fi
 
     mkdir -p "$OUTPUT_DIR"
@@ -188,14 +171,5 @@ git_clone
 
 # Run targets
 build_all_archs
-
-echo -e "\n${HELIOTROPE}🎊 UASM Build completed!${NC}"
-for arch in $ARCHS; do
-    local_out="$OUTPUT_DIR/uasm-$arch"
-    if [[ -f "$local_out" ]]; then
-        size=$(stat -c%s "$local_out" 2>/dev/null || stat -f%z "$local_out" 2>/dev/null || echo "unknown")
-        success "Built $arch: uasm-$arch ($(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes"))"
-    fi
-done
 
 final
