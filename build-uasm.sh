@@ -104,7 +104,7 @@ build_arch() {
     echo -e "${MAUVE}==>${BWHITE} Preparing build environment...${NC}"
     rm -rf "$build_work_dir"
     mkdir -p "$build_work_dir"
-    cp -r "$BUILD_BASE/uasm-src/." "$build_work_dir/"
+    cp -r "$SOURCE_DIR/." "$build_work_dir/"
 
     # 6. Compile with Interactive Progress Bar & Logging
     local log_file="$(pwd)/${NAME}-build/build-${arch_key}.log"
