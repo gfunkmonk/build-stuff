@@ -105,15 +105,6 @@ build_arch() {
     local cxx="$bin_dir/${triple}-$cxx_name"
     local strip="$bin_dir/${triple}-strip"
 
-    case "${arch_key}" in
-      x86_64|x86-64|amd64)  ARCH_FLAGS="-march=x86-64 -mtune=generic" ;;
-      x86|i*86)             ARCH_FLAGS="-march=pentium-m -mtune=generic" ;;
-      aarch64|arm64|armv8)  ARCH_FLAGS="-march=armv8-a" ;;
-      armv7|armv7l)         ARCH_FLAGS="-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -marm" ;;
-      armhf|armv6|arm)      ARCH_FLAGS="-march=armv6kz -mfloat-abi=hard -mfpu=vfp -marm" ;;
-      *) ARCH_FLAGS="" ;;
-    esac
-
     # 5. Build
     local bundle_dir="$SOURCE_DIR/CPP/7zip/Bundles/Alone2"
     # Use double-quotes so ${ARCH_FLAGS} is expanded, and match the whole
@@ -132,6 +123,8 @@ build_arch() {
     local total
     total=$(make -f makefile.gcc -n \
         CC="$cc" CXX="$cxx" PLATFORM="$platform" \
+        CFLAGS_BASE_LIST="-c -D_7ZIP_AFFINITY_DISABLE=1 -DZ7_AFFINITY_DISABLE=1 -D_GNU_SOURCE=1" \
+        CFLAGS_WARN_WALL="-Wall -Wextra" COMPL_STATIC=1 \
         LDFLAGS="-static -Wl,--gc-sections" 2>/dev/null | grep -c ' -c ' || true)
     # Fall back to 100 when dry-run produces no countable steps (e.g. the
     # makefile redirected stderr only); the bar still shows spinner progress.
@@ -141,7 +134,10 @@ build_arch() {
     make -f makefile.gcc -j"$JOBS" \
         CC="$cc" \
         CXX="$cxx" \
+        CFLAGS_BASE_LIST="-c -D_7ZIP_AFFINITY_DISABLE=1 -DZ7_AFFINITY_DISABLE=1 -D_GNU_SOURCE=1" \
+        CFLAGS_WARN_WALL="-Wall -Wextra" \
         PLATFORM="$platform" \
+        COMPL_STATIC=1 \
         LDFLAGS="-static -Wl,--gc-sections" \
         > "$log_file" 2>&1 &
     # Use make-files mode to count produced .o files; this is independent of
