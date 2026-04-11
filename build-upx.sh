@@ -126,49 +126,16 @@ build_arch() {
 
     echo -e "${NEONBLUE}🔨 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
 
-# 1. Download Toolchain (Sunflower Style)
+# 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
-    if [[ ! -f "$tarpath" ]]; then
-        echo -e "${SLATE}==>${NC} Fetching toolchain: ${AQUA}$tarball${NC}"
-        # Use -# for the progress bar and pipe 2>&1 into the sunflower loop
-        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | while IFS= read -d $'\r' -r p; do
-            # Clean up the percentage from curl output
-            p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
-            : ${p:=0} # Default to 0 if empty
-            # Scale to 10 for the Sunflower bar
-            local scaled=$(( p / 10 ))
-            local bar=$(printf "%${scaled}s" | tr ' ' '=')
-            # Print the Sunflower-style status
-            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
-        done
-        # Check PIPESTATUS[0] (the exit code of curl)
-        if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
-            echo -e "\n${TOMATO}Download failed for $tarball${NC}"
-            rm -f "$tarpath"
-            return 1
-        fi
-        echo -e "" # Move to next line after success
-    fi
+    download_toolchain "$tarpath" "$tarball" || return 1
 
     echo -e "${SLATE}==>${NC} Verifying Integrity..."
-    local expected
-    [[ "$COMPILER_TYPE" == "gcc" ]] && expected="${HASHES_GCC[$tarball]}" || expected="${HASHES_CLANG[$tarball]}"
-
-    local actual=$(sha256sum "$tarpath" | awk '{print $1}')
-    if [[ "$actual" != "$expected" ]]; then
-        echo -e "${TOMATO}CRITICAL: Hash mismatch for $tarball!${NC}"
-        echo -e "Expected: $expected\nGot: $actual"
-        rm -f "$tarpath"
-        exit 1
-    fi
+    verify_hash "$tarpath" "$tarball" || exit 1
 
     # 2. Extract
     local extract_path="$TOOLCHAIN_DIR/$triple"
-    if [[ ! -d "$extract_path" ]]; then
-        echo -n -e "${SLATE}==>${NC} Extracting... "
-        mkdir -p "$extract_path"
-        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
-    fi
+    extract_toolchain "$tarpath" "$triple" || return 1
 
     # 3. Build Setup
     local bin_dir="$extract_path/bin"
