@@ -120,14 +120,13 @@ build_arch() {
         --enable-static \
         --prefix="$wolfssl_prefix" \
         --enable-curl \
-        --enable-all \
         $wolfssl_32bit \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -Wno-error=shorten-64-to-32" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
     local total_wolfssl
-    total_wolfssl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || echo 0)
+    total_wolfssl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || true)
     [[ "$total_wolfssl" -lt 1 ]] && total_wolfssl=50
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building wolfSSL (Jobs: $JOBS)...${NC}"
     make -j"$JOBS" V=1 >> "$wolfssl_log" 2>&1 &
@@ -135,6 +134,7 @@ build_arch() {
     make install >> "$wolfssl_log" 2>&1 || {
         echo -e "${NEONRED}wolfSSL Install FAILED. Check $wolfssl_log${NC}"; return 1;
     }
+    printf "\r${GOLDENROD}[####################] 100%%$ (Complete)${NC}\n"
     # 5. Configure (Autotools)
     cd "$SOURCE_DIR"
     local wolf_libdir="$wolfssl_prefix/lib"
@@ -166,10 +166,10 @@ build_arch() {
         }
     # Pre-count expected compilation units for accurate progress tracking
     local total_curl
-    total_curl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || echo 0)
+    total_curl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || true)
     [[ "$total_curl" -lt 1 ]] && total_curl=100
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building curl (Jobs: $JOBS)...${NC}"
-    make -j"$JOBS" V=1 LDFLAGS="-static -all-static -Wl,--gc-sections" >> "$log_file" 2>&1 &
+    make -j"$JOBS" V=1 LDFLAGS="-static -all-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 &
     track_progress $! "$log_file" "grep-count" "$total_curl" "${NEONBLUE}" " -c -o "
     # Finalize
     cp "$SOURCE_DIR/src/curl" "$out_file"
