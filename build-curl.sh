@@ -92,7 +92,7 @@ build_arch() {
 
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""
-    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32 -DWORD32"
+    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32 -DWORD32 -DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
 
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     cd "$ROOT_DIR"
@@ -107,21 +107,22 @@ build_arch() {
     mkdir -p "$wolfssl_prefix"
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh (wolfSSL)...${NC}"
     ./autogen.sh > "$wolfssl_log" 2>&1
     local wolfssl_32bit=""
     if [[ "$arch" == i*86 ]]; then
-        wolfssl_32bit="--enable-32bit --enable-fastmath"
+        wolfssl_32bit="--enable-32bit --enable-fastmath --disable-asm"
     fi
-    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure (wolfSSL)...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
         --prefix="$wolfssl_prefix" \
         --enable-curl \
+        --enable-all \
         $wolfssl_32bit \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -Wno-error=shorten-64-to-32" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
@@ -136,13 +137,15 @@ build_arch() {
     }
     # 5. Configure (Autotools)
     cd "$SOURCE_DIR"
+    local wolf_libdir="$wolfssl_prefix/lib"
+    [[ -d "$wolfssl_prefix/lib64" ]] && wolf_libdir="$wolfssl_prefix/lib64"
     # Ensure fresh start
     make distclean >/dev/null 2>&1 || true
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running Autoreconf...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running Autoreconf...(curl)${NC}"
     autoreconf -fi > "$log_file" 2>&1 || {
         echo -e "${NEONRED}Autoreconf FAILED. Check $log_file${NC}"; return 1;
     }
-    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...(curl)${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
@@ -157,8 +160,8 @@ build_arch() {
         --without-libssh2 \
         --with-zlib \
         --without-brotli \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -flto=auto -ffat-lto-objects -ffunction-sections -fdata-sections -fno-stack-protector" \
-        LDFLAGS="-static -Wl,--gc-sections" >> "$log_file" 2>&1 || {
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
+        LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
     # Pre-count expected compilation units for accurate progress tracking
