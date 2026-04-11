@@ -72,7 +72,7 @@ build_arch() {
     echo -e "${NEONBLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
     if [[ "${RESUME_MODE:-false}" == true && -f "$out_file" ]]; then
-        echo -e "${MINT}⏭️  Skipping $arch: Binary already exists (Resume Mode)${NC}"
+        echo -e "${MINT}⏭️  Skipping $arch_key: Binary already exists (Resume Mode)${NC}"
         return
     fi
 
@@ -152,6 +152,11 @@ build_arch() {
     local oni_make_exit=$?
     set -e
     printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
+    if [[ "$oni_make_exit" -ne 0 ]]; then
+        printf "\n"
+        echo -e "${NEONRED}oniguruma build FAILED. Check $log_file${NC}"
+        return 1
+    fi
 
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
     # Count jq source files once for an accurate, stable total.
