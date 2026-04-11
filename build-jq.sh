@@ -131,8 +131,8 @@ build_arch() {
 
     echo -e "${HIGHLIGHTER}==>${NC} ${LAGOON}Building jq (Jobs: $JOBS)...${NC}"
 
-    # Get a fresh count
-    local total_steps=$(make -n | grep -c " -c ")
+    # Get a fresh count (V=1 forces verbose output so '-c' appears in each compile line)
+    local total_steps=$(make -n V=1 | grep -c " -c ")
     # Buffer for the link steps
     total_steps=$(( total_steps + 2 ))
     local current_step=0
@@ -142,7 +142,7 @@ build_arch() {
 
     set +e
     # Use 'unbuffer' if available, otherwise 'stdbuf -i0 -o0 -e0' for total zero-buffering
-    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | tee -a "$log_file")
+    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" V=1 LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | tee -a "$log_file")
 
     while read -u 3 -r line; do
         # JQ uses 'CC' or 'gcc' lines for compilation. 
