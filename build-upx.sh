@@ -13,6 +13,11 @@ SOURCE_DIR="$ROOT_DIR/upx-src"
 BUILD_BASE="$ROOT_DIR/builds"
 OUTPUT_DIR="$ROOT_DIR/output"
 DL_COLOR="${HIGHLIGHTER}"
+DL_TC_1="${SLATE}"
+DL_TC_2="${NC}"
+DL_TC_3="${AQUA}"
+EX_TC_1="${SLATE}"
+EX_TC_2="${NC}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
