@@ -131,7 +131,7 @@ build_arch() {
     echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
 
     local build_failed
-    set +eo pipefail
+    set +e +o pipefail
 
     if command -v ninja &>/dev/null; then
         ninja -v -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
@@ -162,7 +162,7 @@ build_arch() {
     fi
 
     printf "\r%60s\r" ""
-    set -eo pipefail
+    set -e -o pipefail
     if [[ $build_failed -ne 0 ]]; then
         echo -e "${NEONRED}Build FAILED:${NC}"
         grep -E 'error:' "$log_file" | tail -10 | \
