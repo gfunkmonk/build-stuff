@@ -127,7 +127,7 @@ build_arch() {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
     local total_wolfssl
-    total_wolfssl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || echo 0)
+    total_wolfssl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || true)
     [[ "$total_wolfssl" -lt 1 ]] && total_wolfssl=50
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building wolfSSL (Jobs: $JOBS)...${NC}"
     make -j"$JOBS" V=1 >> "$wolfssl_log" 2>&1 &
@@ -166,7 +166,7 @@ build_arch() {
         }
     # Pre-count expected compilation units for accurate progress tracking
     local total_curl
-    total_curl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || echo 0)
+    total_curl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || true)
     [[ "$total_curl" -lt 1 ]] && total_curl=100
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building curl (Jobs: $JOBS)...${NC}"
     make -j"$JOBS" V=1 LDFLAGS="-static -all-static -Wl,--gc-sections" >> "$log_file" 2>&1 &
