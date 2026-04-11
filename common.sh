@@ -140,11 +140,11 @@ extract_toolchain() {
     local triple="$2"
     local extract_path="$TOOLCHAIN_DIR/$triple"
     if [[ ! -d "$extract_path" ]]; then
-        echo -e "${SLATE}==>${NC} Extracting toolchain..."
+        echo -e "${EX_TC_1}==>${EX_TC_2} Extracting toolchain...${NC}"
         mkdir -p "$extract_path"
         tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR" || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
         [[ -d "$extract_path" ]] || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
     else
-        echo -e "${MINT}✨ Toolchain already extracted.${NC}"
+        echo -e "${MINT} Toolchain already extracted.${NC}"
     fi
 }
