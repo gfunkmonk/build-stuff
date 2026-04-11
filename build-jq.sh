@@ -127,14 +127,22 @@ build_arch() {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
-    # Pre-count expected compilation units for accurate progress tracking
-    local total_lo
-    total_lo=$(find "$SOURCE_DIR/vendor/oniguruma/src" "$SOURCE_DIR/src" -name "*.c" -type f 2>/dev/null | wc -l)
-    [[ "$total_lo" -lt 1 ]] && total_lo=80
+    # Pre-count expected compilation units for accurate per-phase progress tracking
+    local total_onig total_jq
+    total_onig=$(find "$SOURCE_DIR/vendor/oniguruma/src" -name "*.c" -type f 2>/dev/null | wc -l)
+    total_jq=$(find "$SOURCE_DIR/src" -name "*.c" -type f 2>/dev/null | wc -l)
+    [[ "$total_onig" -lt 1 ]] && total_onig=60
+    [[ "$total_jq" -lt 1 ]] && total_jq=20
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq + oniguruma (Jobs: $JOBS)...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
+    # Oniguruma phase
+    make -j"$JOBS" >> "$log_file" 2>&1 &
+    track_progress $! "$log_file" "make-files" "$total_onig" "${HELIOTROPE}" "$SOURCE_DIR/vendor/oniguruma/src:*.lo"
+
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
+    # JQ phase
     make -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" "$total_lo" "${HELIOTROPE}" "$SOURCE_DIR:*.lo"
+    track_progress $! "$log_file" "make-files" "$total_jq" "${HELIOTROPE}" "$SOURCE_DIR/src:*.lo"
 
     # Finalize
     #printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
