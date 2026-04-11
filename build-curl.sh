@@ -93,6 +93,7 @@ build_arch() {
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""
     [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32 -DWORD32 -DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
+    [[ "$arch" == armhf || "$arch" == armv7 ]] && ARCH_FLAGS="-DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
 
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     # Separate log for the make phase only — prevents configure test-compilation
