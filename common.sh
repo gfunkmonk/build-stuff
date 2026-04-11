@@ -178,7 +178,7 @@ download_toolchain() {
     local tarpath="$1"
     local tarball="$2"
     if [[ -f "$tarpath" ]]; then
-        echo -e "${MINT}Using cached toolchain: $tarball${NC}"
+        echo -e "${CARIBBEAN}Using cached toolchain: $tarball${NC}"
         return 0
     fi
     echo -e "${DL_TC_1}==>${DL_TC_2} Fetching toolchain: ${DL_TC_3}$tarball${NC}"
@@ -249,7 +249,7 @@ git_clone() {
         echo -e "${GIT_C}==>${GIT_C2} Cloning ${NAME} source...${NC}"
         git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
     else
-        echo -e "${MINT}✨ Source code present.${NC}"
+        echo -e "${CORAL}✨ Source code present.${NC}"
         git -C "$SOURCE_DIR" pull origin "$REPO_BRANCH" > /dev/null 2>&1
     fi
 }
