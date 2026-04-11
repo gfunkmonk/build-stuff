@@ -174,33 +174,20 @@ build_arch() {
             echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
         }
 
-    echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
-
-    local current_file=0
-    # Use a rolling animation character to show life even if the count is high
-    local spin='-\|/'
-    local i=0
-
-    set +e
-    exec 3< <(VERBOSE=1 stdbuf -oL ${BUILD_CMD} -C "$bdir" 2>&1 | tee -a "$log_file")
-
-    while read -u 3 -r line; do
-        # Detect the compiler execution lines
-        if [[ "$line" == *"Building"* && "$line" == *".o"* ]]; then
-            ((current_file++))
-            i=$(( (i+1) % 4 ))
-            # Since we can't trust the total file count in mold, we use 
-            # a dynamic bar that grows but resets or "scrolls" if it exceeds a limit
-            local p=$(( current_file % 100 ))
-            local scaled=$(( p / 5 ))
-            local bar=$(printf "%${scaled}s" | tr ' ' '#')
-            # Display: [######      ] [Counter] [Spinner]
-            printf "\r${CHARTREUSE}[%-20s]${NC} ${BWHITE}%d objects${NC} ${SKY}%s${NC}" "$bar" "$current_file" "${spin:$i:1}"
+    local build_failed=0
+    ${BUILD_CMD:-make} -C "$bdir" 2>&1 | \
+    while IFS= read -r line; do
+        if [[ "$line" =~ \[([[:space:]]*[0-9]+)%\] ]]; then
+            printf "\r${CHARTREUSE}  [ %3s%% ]${NC} %s" "${BASH_REMATCH[1]}" \
+                "$(echo "$line" | sed 's/\[.*%\] //' | cut -c1-60)"
         fi
-    done
-    exec 3<&-
-    set -e
-
+    done; build_failed=${PIPESTATUS[0]}
+    echo ""
+    if [[ $build_failed -ne 0 ]]; then
+        echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"
+        return 1
+    fi
+        
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
     cmake --build "$bdir" --target install >> "$log_file" 2>&1
 
