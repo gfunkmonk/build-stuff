@@ -112,7 +112,7 @@ build_arch() {
     # JQ requires oniguruma sub-config
     autoreconf -fi > "$log_file" 2>&1
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONPURPLE}Running Configure...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running Configure...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
@@ -127,32 +127,52 @@ build_arch() {
 
     # 5. Build with Accurate Progress
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
-    make -C vendor/oniguruma -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1
+    local oni_total=$(make -n -C vendor/oniguruma V=1 2>/dev/null | grep -c " -c " || true)
+    oni_total=$(( oni_total + 1 ))
+    local oni_step=0
+    printf "\r${HELIOTROPE}[%-20s]   0%%${NC} ${LAGOON}(0/%d)${NC}" "" "$oni_total"
+    local oni_exit_file; oni_exit_file=$(mktemp)
+    set +e
+    exec 3< <({ stdbuf -i0 -o0 -e0 make -C vendor/oniguruma -j"$JOBS" V=1 LDFLAGS="-static" 2>&1; echo $? > "$oni_exit_file"; } | stdbuf -i0 -o0 -e0 tee -a "$log_file")
+    while read -u 3 -r line; do
+        if [[ "$line" =~ " -c " ]]; then
+            ((oni_step++))
+            # If the real build produces more steps than predicted (e.g. libtool
+            # emits both a wrapper line and a direct compiler line per file),
+            # extend the total so the display never reads "96/70" or shows >99%.
+            [[ $oni_step -gt $oni_total ]] && oni_total=$(( oni_step + 5 ))
+            local op=$(( oni_step * 100 / oni_total ))
+            [[ $op -gt 99 ]] && op=99
+            local oscaled=$(( op / 5 ))
+            local obar=$(printf "%${oscaled}s" | tr ' ' '#')
+            printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$obar" "$op" "$oni_step" "$oni_total"
+        fi
+    done
+    exec 3<&-
+    set -e
+    printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${LAGOON}Building jq (Jobs: $JOBS)...${NC}"
-
-    # Get a fresh count (V=1 forces verbose output so '-c' appears in each compile line)
-    local total_steps=$(make -n V=1 | grep -c " -c ")
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
+    # Get a fresh count — exclude vendor/oniguruma paths because GNU Make's -n
+    # dry-run recurses into sub-makes and counts those steps even when oniguruma
+    # objects are already built, which would inflate total_steps and cause the
+    # bar to stall well short of 100% during the real build.
+    local total_steps=$(make -n V=1 2>/dev/null | grep " -c " | grep -v "vendor/oniguruma" | wc -l)
     # Buffer for the link steps
     total_steps=$(( total_steps + 2 ))
     local current_step=0
-
     # Ensure we start at 0% visible
     printf "\r${HELIOTROPE}[%-20s]   0%%${NC} ${LAGOON}(0/%d)${NC}" "" "$total_steps"
-
     set +e
     # Use 'unbuffer' if available, otherwise 'stdbuf -i0 -o0 -e0' for total zero-buffering
-    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" V=1 LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | tee -a "$log_file")
-
+    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" V=1 LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | stdbuf -i0 -o0 -e0 tee -a "$log_file")
     while read -u 3 -r line; do
-        # JQ uses 'CC' or 'gcc' lines for compilation. 
-        # We look for the '-c' flag which indicates an object is being built.
-        if [[ "$line" =~ " -c " || "$line" =~ "Building" ]]; then
+        # Look for the '-c' flag which indicates an object file is being compiled.
+        if [[ "$line" =~ " -c " ]]; then
             ((current_step++))
-
+            [[ $current_step -gt $total_steps ]] && total_steps=$(( current_step + 5 ))
             local p=$(( current_step * 100 / total_steps ))
             [[ $p -gt 99 ]] && p=99
-
             local scaled=$(( p / 5 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '#')
             # The '\r' and explicit spacing ensures the bar overwrites itself immediately
@@ -168,7 +188,7 @@ build_arch() {
     "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
     
     local final_size=$(du -sh "$out_file" | awk '{print $1}')
-    echo -e "${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${PEACH}$final_size${NC})"
+    echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${PEACH}$final_size${NC})"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────

@@ -186,7 +186,7 @@ build_arch() {
     fi
 
     local final_size; final_size=$(du -sh "$out_file" | awk '{print $1}')
-    echo -e "${NEONGREEN}✅ Successfully built: ${BWHITE}mold-$arch${NC} (${JUNEBUD}$final_size${NC})"
+    echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}mold-$arch${NC} (${JUNEBUD}$final_size${NC})"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
