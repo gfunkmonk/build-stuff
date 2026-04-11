@@ -151,7 +151,7 @@ build_arch() {
 
     if [[ "$make_exit" -ne 0 ]]; then
         echo -e "${CRIMSON}Build failed! Check log: $log_file${NC}"
-        exit 1
+        return 1
     fi
 
     # 7. Finalize

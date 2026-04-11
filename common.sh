@@ -111,7 +111,7 @@ CXXFLAGS="-Os -static"
 
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
-CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/television/"
+CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/television"
 RELEASE_BASE="$CLANG_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
@@ -249,10 +249,8 @@ git_clone() {
         echo -e "${GIT_C}==>${GIT_C2} Cloning ${NAME} source...${NC}"
         git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
     else
-        cd "${SOURCE_DIR}"
-        git pull origin
-        cd ../
         echo -e "${MINT}✨ Source code present.${NC}"
+        git -C "$SOURCE_DIR" pull origin "$REPO_BRANCH" > /dev/null 2>&1
     fi
 }
 
