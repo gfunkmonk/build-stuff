@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # ── Colors ────────────────────────────────────────────────────────────────────
 AQUA="\033[38;2;18;254;202m"
 BWHITE="\033[1;37m"
@@ -87,6 +89,7 @@ declare -A HASHES_CLANG=(
 JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RESUME_MODE=false
+USER_ARCHS=""
 
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
@@ -119,6 +122,8 @@ parse_common_flag() {
         --clang)     set_compiler clang; COMMON_SHIFT=1; return 0 ;;
         -r|--resume) RESUME_MODE=true;   COMMON_SHIFT=1; return 0 ;;
         -j|--jobs)   JOBS="$2";          COMMON_SHIFT=2; return 0 ;;
+        -a|--arch)   USER_ARCHS="$2";    COMMON_SHIFT=2; return 0 ;;
+        -C|--clean)  clean_workspace;    COMMON_SHIFT=1; return 0 ;;
     esac
     return 1
 }
@@ -127,6 +132,27 @@ parse_common_flag() {
 # Call once after all flags have been parsed.
 setup_toolchain_dir() {
     TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+}
+
+# Wipe the build workspace and exit.
+# Requires ROOT_DIR to be set by the calling script.
+clean_workspace() {
+    echo -e "${CLEAN_C}💥 Cleaning workspace...${NC}"
+    rm -rf "$ROOT_DIR"
+    exit 0
+}
+
+# Iterate over $ARCHS and call build_arch for each known architecture.
+# Requires ARCHS and ARCH_INFO to be set, and build_arch to be defined,
+# by the calling script.
+build_all_archs() {
+    for arch in $ARCHS; do
+        if [[ -z "${ARCH_INFO[$arch]:-}" ]]; then
+            echo -e "${TOMATO}Skipping unknown architecture: $arch${NC}"
+            continue
+        fi
+        build_arch "$arch"
+    done
 }
 
 # ── Toolchain Download ────────────────────────────────────────────────────────

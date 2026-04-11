@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
 
@@ -19,6 +17,7 @@ DL_TC_3="${CHARTREUSE}"
 EX_TC_1="${SKY}"
 EX_TC_2="${NEONBLUE}"
 FINAL_C="${NEONPINK}"
+CLEAN_C="${NEONRED}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -48,20 +47,12 @@ show_help() {
 }
 
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
-USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     if parse_common_flag "$@"; then
         shift "$COMMON_SHIFT"
         continue
     fi
     case "$1" in
-        -a|--arch)
-            USER_ARCHS="$2"
-            shift 2 ;;
-        -C|--clean)
-            echo -e "${NEONRED}💥 Cleaning workspace...${NC}"
-            rm -rf "$ROOT_DIR"
-            exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
     esac
@@ -217,12 +208,6 @@ if command -v ninja &>/dev/null; then
 fi
 
 # Loop through architectures
-for arch in $ARCHS; do
-    if [[ -z "${ARCH_INFO[$arch]:-}" ]]; then
-        echo -e "${ORANGE}Skipping unknown architecture: $arch${NC}"
-        continue
-    fi
-    build_arch "$arch"
-done
+build_all_archs
 
 final
