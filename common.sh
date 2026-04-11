@@ -226,7 +226,7 @@ extract_toolchain() {
         tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR" || { echo -e "${NEONRED}Extraction failed!${NC}"; return 1; }
         [[ -d "$extract_path" ]] || { echo -e "${NEONRED}Extraction failed!${NC}"; return 1; }
     else
-        echo -e "${MINT} Toolchain already extracted.${NC}"
+        echo -e "${EX_TC_3} Toolchain already extracted.${NC}"
     fi
 }
 
@@ -246,6 +246,6 @@ git_clone() {
 # ── Final ──────────────────────────────────────────────────────────────────────
 final() {
     echo -e "\n${FINAL_C}🎊 All requested architectures are finished!${NC}"
-    echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}$OUTPUT_DIR${NC}"
+    echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${NAME}-build/output${NC}"
     ls -F --color=auto "$OUTPUT_DIR"
 }

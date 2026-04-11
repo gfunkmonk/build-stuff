@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
 
@@ -14,7 +12,8 @@ DL_TC_2="${NEONBLUE}"
 DL_TC_3="${ORANGE}"
 EX_TC_1="${HIGHLIGHTER}"
 EX_TC_2="${NEONBLUE}"
-FINAL_C="${NEONPINK}"
+EX_TC_3="${TOMATO}"
+FINAL_C="${JUNEBUD}"
 CLEAN_C="${TOMATO}"
 GIT_C="${HOTPINK}"
 GIT_C2="${CYAN}"
@@ -77,7 +76,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${MAUVE}🏗️  Targeting:${NC} ${CHARTREUSE}$arch${NC} [${TOMATO}$triple${NC}] using ${PEACH}$COMPILER_TYPE${NC}"
+    echo -e "${MAUVE}🏗️  Targeting:${NC} ${SKY}$arch${NC} ${LEMON}[${TOMATO}$triple${LEMON}] ${MAUVE}using ${ORANGE}$COMPILER_TYPE${NC}"
 
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
@@ -87,7 +86,7 @@ build_arch() {
     download_toolchain "$tarpath" "$tarball" || exit 1
 
     # 2. Hash Verification
-    echo -e "${PEACH}🛡️  Verifying Integrity...${NC}"
+    echo -e "${TAWNY}🛡️  Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || exit 1
     
     # 3. Extraction Check
@@ -104,60 +103,72 @@ build_arch() {
     local strip="$bin_dir/${triple}-strip"
 
     # 4. Configure (Autotools style)
-    echo -e "${SKY}==>${NC} ${ORANGE}Running Autogen & Configure...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running Autogen...${NC}"
     cd "$SOURCE_DIR"
-    # Ensure fresh start for every arch
+    
+    # Ensure fresh start
     make distclean >/dev/null 2>&1 || true
-    
+
+    # JQ requires oniguruma sub-config
     autoreconf -fi > "$log_file" 2>&1
-    
-    CC="$cc" ./configure \
+
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONPURPLE}Running Configure...${NC}"
+    CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
         --disable-docs \
         --disable-valgrind \
         --with-oniguruma=builtin \
-        --disable-maintainer-mode \
-        --enable-all-static \
-        CFLAGS="-O2 -pthread -fstack-protector-all" \
+        CFLAGS="-Os -static" \
         LDFLAGS="-static" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
     # 5. Build with Accurate Progress
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
+    make -C vendor/oniguruma -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1
+
     echo -e "${HIGHLIGHTER}==>${NC} ${LAGOON}Building jq (Jobs: $JOBS)...${NC}"
-    
-    # Get total step count for accurate bar
+
+    # Get a fresh count
     local total_steps=$(make -n | grep -c " -c ")
-    : ${total_steps:=50} # Fallback
+    # Buffer for the link steps
+    total_steps=$(( total_steps + 2 ))
     local current_step=0
 
+    # Ensure we start at 0% visible
+    printf "\r${HELIOTROPE}[%-20s]   0%%${NC} ${LAGOON}(0/%d)${NC}" "" "$total_steps"
+
     set +e
-    exec 3< <(stdbuf -oL make -j"$JOBS" 2>&1 | tee -a "$log_file")
+    # Use 'unbuffer' if available, otherwise 'stdbuf -i0 -o0 -e0' for total zero-buffering
+    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | tee -a "$log_file")
 
     while read -u 3 -r line; do
-        # Catch standard compiler output
-        if [[ "$line" == *" -c "* ]]; then
+        # JQ uses 'CC' or 'gcc' lines for compilation. 
+        # We look for the '-c' flag which indicates an object is being built.
+        if [[ "$line" =~ " -c " || "$line" =~ "Building" ]]; then
             ((current_step++))
+
             local p=$(( current_step * 100 / total_steps ))
             [[ $p -gt 99 ]] && p=99
-            
-            local scaled=$(( p / 3 ))
+
+            local scaled=$(( p / 5 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '#')
-            printf "\r${CHARTREUSE}[%-20s] %3d%%${NC} ${SLATE}(%d/%d)${NC}" "$bar" "$p" "$current_step" "$total_steps"
+            # The '\r' and explicit spacing ensures the bar overwrites itself immediately
+            printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$bar" "$p" "$current_step" "$total_steps"
         fi
     done
     exec 3<&-
     set -e
 
     # Finalize
-    printf "\r${CHARTREUSE}[####################] 100%%${NC} ${SLATE}(Complete)${NC}\n"
+    printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
     cp jq "$out_file"
     "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
     
     local final_size=$(du -sh "$out_file" | awk '{print $1}')
-    echo -e "${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${JUNEBUD}$final_size${NC})"
+    echo -e "${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${PEACH}$final_size${NC})"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
