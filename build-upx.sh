@@ -2,20 +2,8 @@
 
 set -euo pipefail
 
-# ── Common Hashes ─────────────────────────────────────────────────────────────
+# ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
-
-# ── Gemini's Curated Palette ──────────────────────────────────────────────────
-AQUA="\033[38;2;18;254;202m"          # Progress
-HELIOTROPE="\033[38;2;223;115;255m"    # Headers
-NEONBLUE="\033[38;2;4;218;255m"        # Info/Targets
-NEONGREEN="\033[38;2;57;255;20m"       # Success
-NEONPURPLE="\033[38;2;225;8;255m"      # Accents
-OCHRE="\033[38;2;204;119;34m"          # Warnings
-SLATE="\033[38;2;109;129;150m"         # Subtext
-TOMATO="\033[38;2;255;99;71m"          # Errors
-BWHITE="\033[1;37m"                    # Bold Highlight
-NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
 ROOT_DIR="$(pwd)/upx-build"
@@ -24,10 +12,6 @@ UPX_BRANCH="devel"
 SOURCE_DIR="$ROOT_DIR/upx-src"
 BUILD_BASE="$ROOT_DIR/builds"
 OUTPUT_DIR="$ROOT_DIR/output"
-JOBS="$(nproc)"
-COMPILER_TYPE="clang"
-RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-RESUME_MODE=false
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
@@ -39,6 +23,8 @@ declare -A ARCH_INFO=(
   [armv7]="armv7-unknown-linux-musleabi:armv7"
   [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
   [aarch64]="aarch64-unknown-linux-musl:aarch64"
+  [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+  [m68k]="m68k-unknown-linux-musl:m68k"
   [mips]="mips-unknown-linux-musl:mips"
   [mips-sf]="mips-unknown-linux-muslsf:mips"
   [mips64]="mips64-unknown-linux-musl:mips64"
@@ -46,12 +32,11 @@ declare -A ARCH_INFO=(
   [mipsel]="mipsel-unknown-linux-musl:mipsel"
   [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
   [powerpc]="powerpc-unknown-linux-musl:powerpc"
+  [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
   [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
   [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
   [riscv32]="riscv32-unknown-linux-musl:riscv32"
   [riscv64]="riscv64-unknown-linux-musl:riscv64"
-  [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-  [m68k]="m68k-unknown-linux-musl:m68k"
   [s390x]="s390x-ibm-linux-musl:s390x"
   [sh4]="sh4-multilib-linux-musl:sh4")
 
@@ -144,7 +129,7 @@ build_arch() {
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
         echo -n -e "${SLATE}==>${NC} Fetching toolchain... "
-        curl -fsSL --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
+        curl -fSL --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" && echo -e "${NEONGREEN}Done${NC}" || { echo -e "${TOMATO}Fail${NC}"; return 1; }
     fi
 
     echo -e "${SLATE}==>${NC} Verifying Integrity..."

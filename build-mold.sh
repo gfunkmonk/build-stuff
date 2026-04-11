@@ -2,38 +2,16 @@
 
 set -euo pipefail
 
-# ── Common Hashes ─────────────────────────────────────────────────────────────
+# ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
 
-# ── Colors ────────────────────────────────────────────────────────────────────
-JUNEBUD="\033[38;2;189;218;87m"
-SKY="\033[38;2;4;218;255m"
-NEONPURPLE="\033[38;2;225;8;255m"
-MINT="\033[38;2;152;255;152m"
-ORANGE="\033[38;2;255;165;0m"
-LEMON="\033[38;2;255;244;79m"
-PEACH="\033[38;2;246;161;146m"
-LAGOON="\033[38;2;142;235;236m"
-HIGHLIGHTER="\033[38;2;248;255;15m"
-BWHITE="\033[1;37m"
-NEONPINK="\033[38;2;255;19;240m"
-HOTPINK="\033[38;2;255;105;180m"
-NEONRED="\033[38;2;255;49;49m"
-NEONGREEN="\033[38;2;57;255;20m"
-NEONBLUE="\033[38;2;4;218;255m"
-NC="\033[0m"
-
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-# Use absolute paths to prevent curl write errors in relative subdirs
-ROOT_DIR="$(pwd)/mold-build"
-RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-MOLD_SRC="$ROOT_DIR/mold"
+NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
+ROOT_DIR="$(pwd)/${NAME}-build"
+SOURCE_DIR="$ROOT_DIR/${NAME}"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
-JOBS="$(nproc)"
 MOLD_BRANCH="stable"
-COMPILER_TYPE="clang"
-RESUME_MODE=false
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -64,7 +42,6 @@ show_help() {
 
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
 USER_ARCHS=""
-
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --gcc)
@@ -87,7 +64,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -C|--clean)
             echo -e "${NEONRED}💥 Cleaning workspace...${NC}"
-            rm -rf "$ROOT_DIR/toolchains" "$BUILD_BASE" "$OUTPUT_DIR" "$MOLD_SRC"
+            rm -rf "$ROOT_DIR"
             exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
@@ -97,12 +74,7 @@ done
 DEFAULT_ARCHS="i686 x86_64 aarch64 armv7hf armv6hf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
-if [[ "$COMPILER_TYPE" == clang ]]; then
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/clang"
-else
-  TOOLCHAIN_DIR="$ROOT_DIR/toolchains/gcc"
-fi
-
+TOOLCHAIN_DIR="$ROOT_DIR/toolchains/$COMPILER_TYPE"
 # ── Logic ─────────────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -110,8 +82,10 @@ build_arch() {
     local info="${ARCH_INFO[$arch]}"
     IFS=: read -r triple tarball cmake_proc <<<"$info"
     local out_file="$OUTPUT_DIR/mold-$arch"
+    local log_file="$ROOT_DIR/build-$arch.log"
+
     echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    
+
     # Check Resume Mode
     if [[ "$RESUME_MODE" == true && -f "$out_file" ]]; then
         echo -e "${MINT}⏭️  Skipping $arch: Binary already exists in output/ (Resume Mode)${NC}"
@@ -119,20 +93,22 @@ build_arch() {
     fi
 
     echo -e "${SKY}🏗️  Targeting:${NC} ${HIGHLIGHTER}$arch${NC} [${LAGOON}$triple${NC}] using ${JUNEBUD}$COMPILER_TYPE${NC}"
-    
+
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
 
-    # 1. Download Cache Check
+    # 1. Download Toolchain (Sunflower Style)
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     if [[ ! -f "$tarpath" ]]; then
-        echo -e "${SKY}==>${HOTPINK} Fetching tarball from GitHub...${NC}"
-        curl -fsSL --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" || {
-            echo -e "${NEONRED}FAILED to download $tarball. Check your connection or permissions.${NC}"
-            exit 1
-        }
-    else
-        echo -e "${MINT}✨ Cached tarball found: $tarball${NC}"
+        echo -e "${SKY}==>${HOTPINK} Fetching toolchain...${NC}"
+        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | while IFS= read -d $'\r' -r p; do
+            p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1); : ${p:=0}
+            local scaled=$(( p / 10 ))
+            local bar=$(printf "%${scaled}s" | tr ' ' '=')
+            printf "\r${AQUA}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+        done
+        [[ "${PIPESTATUS[0]}" -eq 0 ]] || { echo -e "\n${NEONRED}Download failed.${NC}"; exit 1; }
+        echo ""
     fi
 
     # 2. Hash Verification
@@ -178,10 +154,10 @@ build_arch() {
     local bdir="$BUILD_BASE/$arch"
     local idir="$BUILD_BASE/$arch-install"
     mkdir -p "$bdir" "$idir" "$OUTPUT_DIR"
-    local log_file="$ROOT_DIR/build-$arch.log"
 
     echo -e "${SKY}==>${NC} ${ORANGE}Configuring CMake...${NC}"
-    cmake -S "$MOLD_SRC" -B "$bdir" -G "${CMAKE_GENERATOR:-Unix Makefiles}" \
+    # Force colors in the generated Makefile so progress strings are sent to the pipe
+    cmake -S "$SOURCE_DIR" -B "$bdir" -G "${CMAKE_GENERATOR:-Unix Makefiles}" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_SYSTEM_NAME=Linux \
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
@@ -192,15 +168,40 @@ build_arch() {
         -DMOLD_USE_SYSTEM_MIMALLOC=OFF \
         -DMOLD_USE_SYSTEM_TBB=OFF \
         -DBUILD_SHARED_LIBS=OFF \
+        -DCMAKE_COLOR_MAKEFILE=ON \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
-        echo -e "${NEONRED}CMake configure FAILED. See: $log_file${NC}"
-        return 1
+            echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
+        }
 
-    echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
-    ${BUILD_CMD:-make} -C "$bdir" > /dev/null
+echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
+    
+    # Pre-calculate total work based on source files in the mold directory
+    local total_files=$(find "$SOURCE_DIR" -name "*.cc" -o -name "*.c" | wc -l)
+    local current_file=0
+
+    set +e
+    # Using 'stdbuf -oL' and forcing 'VERBOSE=1' to see every file being built
+    exec 3< <(VERBOSE=1 stdbuf -oL ${BUILD_CMD} -C "$bdir" 2>&1 | tee -a "$log_file")
+
+    while read -u 3 -r line; do
+        # Every time we see "Building CXX object" or a similar compiler line
+        if [[ "$line" == *"Building"* && "$line" == *".o"* ]]; then
+            ((current_file++))
+
+            # Calculate percentage based on file count
+            local p=$(( current_file * 100 / total_files ))
+            [[ $p -gt 100 ]] && p=100
+            local scaled=$(( p / 5 ))
+            local bar=$(printf "%${scaled}s" | tr ' ' '#')
+            printf "\r${CHARTREUSE}[%-20s] %3d%%${NC} ${SLATE}(%d/%d)${NC}" "$bar" "$p" "$current_file" "$total_files"
+        fi
+    done
+    exec 3<&-
+    set -e
+    echo ""
 
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
-    cmake --build "$bdir" --target install > /dev/null
+    cmake --build "$bdir" --target install >> "$log_file" 2>&1
 
     # 6. Finalize Binary
     cp "$idir/bin/mold" "$out_file"
@@ -220,9 +221,9 @@ echo -e "${HOTPINK}Starting mold cross-compilation suite...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 
 # Check for mold source
-if [[ ! -d "$MOLD_SRC/.git" ]]; then
-    echo -e "${SKY}==>${HIGHLIGHTER} Cloning mold source into $MOLD_SRC...${NC}"
-    git clone --branch "$MOLD_BRANCH" --depth 1 https://github.com/gfunkmonk/mold.git "$MOLD_SRC" > /dev/null 2>&1
+if [[ ! -d "$SOURCE_DIR/.git" ]]; then
+    echo -e "${SKY}==>${HIGHLIGHTER} Cloning mold source...${NC}"
+    git clone --branch "$MOLD_BRANCH" --depth 1 https://github.com/gfunkmonk/mold.git "$SOURCE_DIR" > /dev/null 2>&1
 fi
 
 # Determine build system

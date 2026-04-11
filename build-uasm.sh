@@ -2,24 +2,8 @@
 
 set -euo pipefail
 
-# ── Common Hashes ─────────────────────────────────────────────────────────────
+# ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
-
-# ── Colors ────────────────────────────────────────────────────────────────────
-CANARY="\033[38;2;255;255;153m"
-CARIBBEAN="\033[38;2;0;204;153m"
-CHARTREUSE="\033[38;2;127;255;0m"
-CORAL="\033[38;2;240;128;128m"
-CRIMSON="\033[38;2;220;20;60m"
-MAUVE="\033[38;2;224;175;255m"
-MINT="\033[38;2;152;255;152m"
-HELIOTROPE="\033[38;2;223;115;255m"
-TOMATO="\033[38;2;255;99;71m"
-SLATE="\033[38;2;145;200;222m"
-TAWNY="\033[38;2;204;78;0m"
-BWHITE="\033[1;37m"
-CYAN="\033[1;36m"
-NC="\033[0m"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
 ROOT_DIR="$(pwd)/uasm-build"
@@ -27,10 +11,6 @@ REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
-JOBS="$(nproc)"
-COMPILER_TYPE="clang"
-RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-RESUME_MODE=false
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
