@@ -111,11 +111,15 @@ build_arch() {
     # Clean per-arch output directory so prior build artefacts don't carry over
     rm -rf _o
 
-    # Dry-run to get an accurate step count for the progress bar
+    # Dry-run to get an accurate step count for the progress bar.
+    # " -c -o " matches compile-only invocations (GCC/Clang -c flag) so only
+    # object-file compilation steps are counted, not link steps.
     local total
     total=$(make -f makefile.gcc -n \
         CC="$cc" CXX="$cxx" PLATFORM="$platform" \
-        LDFLAGS="-static" 2>/dev/null | grep -c " -o " || true)
+        LDFLAGS="-static" 2>/dev/null | grep -c " -c -o " || true)
+    # Fall back to 100 when dry-run produces no countable steps (e.g. the
+    # makefile redirected stderr only); the bar still shows spinner progress.
     [[ "$total" -lt 1 ]] && total=100
 
     echo -e "${OCHRE}==>${NC} ${GOLDENROD}Building 7zz (Jobs: $JOBS)...${NC}"
@@ -125,7 +129,7 @@ build_arch() {
         PLATFORM="$platform" \
         LDFLAGS="-static" \
         > "$log_file" 2>&1 &
-    track_progress $! "$log_file" "grep-count" "$total" "${GOLDENROD}" " -o " || {
+    track_progress $! "$log_file" "grep-count" "$total" "${GOLDENROD}" " -c -o " || {
         echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"; return 1;
     }
 
