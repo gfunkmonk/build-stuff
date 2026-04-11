@@ -13,6 +13,11 @@ BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 MOLD_BRANCH="stable"
 DL_COLOR="${NEONGREEN}"
+DL_TC_1="${SKY}"
+DL_TC_2="${HOTPINK}"
+DL_TC_3="${CHARTREUSE}"
+EX_TC_1="${SKY}"
+EX_TC_2="${NEONBLUE}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
