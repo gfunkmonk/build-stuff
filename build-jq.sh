@@ -4,7 +4,8 @@
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-REPO_URL="https://github.com/jqlang/jq.git"
+#REPO_URL="https://github.com/jqlang/jq.git"
+REPO_URL="https://github.com/gfunkmonk/jq.git"
 REPO_BRANCH="master"
 DL_COLOR="${LAGOON}"
 DL_TC_1="${HIGHLIGHTER}"
@@ -105,7 +106,7 @@ build_arch() {
     local strip="$bin_dir/${triple}-strip"
 
     # 4. Configure (Autotools style)
-    #echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running Autogen...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running autoreconf...${NC}"
     cd "$SOURCE_DIR"
     
     # Ensure fresh start
@@ -113,9 +114,9 @@ build_arch() {
 
     # JQ requires oniguruma sub-config
     local oniguruma_build_log="$ROOT_DIR/oniguruma-build-$arch_key.log"
-    #autoreconf -if > "$log_file" 2>&1
+    autoreconf -if > "$log_file" 2>&1
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running Configure...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running configure...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
