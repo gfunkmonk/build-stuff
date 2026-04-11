@@ -20,8 +20,8 @@ GIT_C2="${CYAN}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
-  [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
   [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
+  [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
   [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz"
   [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz"
   [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz"
@@ -120,7 +120,7 @@ build_arch() {
         --disable-docs \
         --disable-valgrind \
         --with-oniguruma=builtin \
-        CFLAGS="-Os -static" \
+        CFLAGS="${CFLAGS}" \
         LDFLAGS="-static" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }

@@ -129,14 +129,14 @@ build_arch() {
     printf "\r${CYAN}[%-50s]   0%% (${CANARY}0/%d${NC})" "" "$total_files"
 
     set +e
-    make -C "$build_work_dir" -f "$MAKEFILE" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
+    make -C "$build_work_dir" -f "$MAKEFILE" CC="$cc_bin ${CFLAGS}" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
     while IFS= read -r line; do
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
             ((current_file++)) || true
             # If actual steps exceed the dry-run estimate, extend the ceiling so
             # the bar never shows nonsense like "112/70" or stalls at 99%.
             [[ $current_file -gt $total_files ]] && total_files=$(( current_file + 3 ))
-            local percent=$(( current_file * 100 / total_files ))
+            local percent=$(( current_file * 105 / total_files ))
             [[ $percent -gt 99 ]] && percent=99
             local num_hashes=$(( percent / 2 ))
             local hashes; hashes=$(printf "%${num_hashes}s" | tr ' ' '#')

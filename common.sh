@@ -106,6 +106,8 @@ JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RESUME_MODE=false
 USER_ARCHS=""
+CFLAGS="-Os -static"
+CXXFLAGS="-Os -static"
 
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"

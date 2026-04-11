@@ -207,6 +207,8 @@ build_arch() {
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
         -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_TYPE}" \
         -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
+        -DCMAKE_C_FLAGS="${CFLAGS}" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
