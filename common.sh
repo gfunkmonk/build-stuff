@@ -137,7 +137,7 @@ setup_toolchain_dir() {
 # Wipe the build workspace and exit.
 # Requires ROOT_DIR to be set by the calling script.
 clean_workspace() {
-    echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
+    echo -e "${CLEAN_C}💥 Cleaning workspace...${NC}"
     rm -rf "$ROOT_DIR"
     exit 0
 }
