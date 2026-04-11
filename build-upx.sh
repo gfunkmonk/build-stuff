@@ -18,6 +18,7 @@ DL_TC_3="${AQUA}"
 EX_TC_1="${SLATE}"
 EX_TC_2="${NC}"
 FINAL_C="${HELIOTROPE}"
+CLEAN_C="${OCHRE}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
