@@ -94,6 +94,7 @@ build_arch() {
     local ARCH_FLAGS=""
     [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32"
 
+    local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     cd "$ROOT_DIR"
     if [[ ! -d "wolfssl/.git" ]]; then
         git clone https://github.com/wolfSSL/wolfssl --depth=1
@@ -104,7 +105,7 @@ build_arch() {
     mkdir -p "$wolfssl_prefix"
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
-    ./autogen.sh
+    ./autogen.sh > "$wolfssl_log" 2>&1
     local wolfssl_32bit=""
     [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit"
     CC="$cc -static" ./configure \
@@ -114,8 +115,18 @@ build_arch() {
         --prefix="$wolfssl_prefix" \
         $wolfssl_32bit \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
-        LDFLAGS="-static -Wl,--gc-sections"
-    make -j"$JOBS" V=1 && make install
+        LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
+            echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
+        }
+    local total_wolfssl
+    total_wolfssl=$(find "$ROOT_DIR/wolfssl/src" -name "*.c" -type f 2>/dev/null | wc -l)
+    [[ "$total_wolfssl" -lt 1 ]] && total_wolfssl=50
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building wolfSSL (Jobs: $JOBS)...${NC}"
+    make -j"$JOBS" V=1 >> "$wolfssl_log" 2>&1 &
+    track_progress $! "$wolfssl_log" "make-files" "$total_wolfssl" "${GOLDENROD}" "$ROOT_DIR/wolfssl/src:*.lo"
+    make install >> "$wolfssl_log" 2>&1 || {
+        echo -e "${NEONRED}wolfSSL Install FAILED. Check $wolfssl_log${NC}"; return 1;
+    }
     # 5. Configure (Autotools)
     cd "$SOURCE_DIR"
     # Ensure fresh start
