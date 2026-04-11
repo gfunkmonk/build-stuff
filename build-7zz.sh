@@ -116,8 +116,10 @@ build_arch() {
 
     # 5. Build
     local bundle_dir="$SOURCE_DIR/CPP/7zip/Bundles/Alone2"
-    sed -i 's/CFLAGS_BASE = -O2/CFLAGS_BASE = -Os -static -ffunction-sections -fdata-sections -fno-stack-protector ${ARCH_FLAGS} -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects -Wno-sign-conversion/g' $SOURCE_DIR/CPP/7zip/7zip_gcc.mak
-    sed -i 's/LDFLAGS = -Wall/LDFLAGS = -static -Wl,--gc-sections/g' $SOURCE_DIR/CPP/7zip/7zip_gcc.mak
+    # Use double-quotes so ${ARCH_FLAGS} is expanded, and match the whole
+    # CFLAGS_BASE line (^...*) so the sed is idempotent across all arches.
+    sed -i "s|^CFLAGS_BASE =.*|CFLAGS_BASE = -Os -static -ffunction-sections -fdata-sections -fno-stack-protector ${ARCH_FLAGS} -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects -Wno-sign-conversion|" "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
+    sed -i 's/LDFLAGS = -Wall/LDFLAGS = -static -Wl,--gc-sections/g' "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
 
     cd "$bundle_dir"
 
@@ -125,13 +127,12 @@ build_arch() {
     rm -rf _o
 
     # Dry-run to get an accurate step count for the progress bar.
-    # " -c -o " matches compile-only invocations (GCC/Clang -c flag) so only
-    # object-file compilation steps are counted, not link steps.
+    # " -c " matches every compile-only invocation regardless of argument order
+    # (e.g. "clang++ ... -c file.cpp -o file.o" or "-c -o file.o file.cpp").
     local total
     total=$(make -f makefile.gcc -n \
         CC="$cc" CXX="$cxx" PLATFORM="$platform" \
-        CLAGS="-Os -static -ffunction-sections -fdata-sections -fno-stack-protector -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects" \
-        LDFLAGS="-static -Wl,--gc-sections" 2>/dev/null | grep -c " -c -o " || true)
+        LDFLAGS="-static -Wl,--gc-sections" 2>/dev/null | grep -c ' -c ' || true)
     # Fall back to 100 when dry-run produces no countable steps (e.g. the
     # makefile redirected stderr only); the bar still shows spinner progress.
     [[ "$total" -lt 1 ]] && total=100
@@ -140,11 +141,12 @@ build_arch() {
     make -f makefile.gcc -j"$JOBS" \
         CC="$cc" \
         CXX="$cxx" \
-        CLAGS="-Os -static -ffunction-sections -fdata-sections -fno-stack-protector -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects" \
         PLATFORM="$platform" \
         LDFLAGS="-static -Wl,--gc-sections" \
         > "$log_file" 2>&1 &
-    track_progress $! "$log_file" "grep-count" "$total" "${GOLDENROD}" " -c -o " || {
+    # Use make-files mode to count produced .o files; this is independent of
+    # log line format and works reliably with parallel make (-j).
+    track_progress $! "$log_file" "make-files" "$total" "${GOLDENROD}" "$bundle_dir/_o:*.o" || {
         echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"; return 1;
     }
 
