@@ -13,7 +13,7 @@ DL_TC_3="${CHARTREUSE}"
 EX_TC_1="${SKY}"
 EX_TC_2="${NEONBLUE}"
 EX_TC_3="${LAGOON}"
-FINAL_C="${NEONPINK}"
+FINAL_C="${HOTPINK}"
 CLEAN_C="${NEONRED}"
 GIT_C="${SKY}"
 GIT_C2="${HIGHLIGHTER}"
@@ -87,15 +87,15 @@ build_arch() {
 
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
-    download_toolchain "$tarpath" "$tarball" || exit 1
+    download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
     echo -e "${PEACH}🛡️  Verifying Integrity...${NC}"
-    verify_hash "$tarpath" "$tarball" || exit 1
+    verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction Check
     local extract_path="$TOOLCHAIN_DIR/$triple"
-    extract_toolchain "$tarpath" "$triple" || exit 1
+    extract_toolchain "$tarpath" "$triple" || return 1
 
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
@@ -125,55 +125,20 @@ build_arch() {
         -DMOLD_USE_SYSTEM_TBB=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_COLOR_MAKEFILE=ON \
-        -DCMAKE_C_FLAGS="${CFLAGS}" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -Wno-stringop-overflow" \
+        -DCMAKE_C_FLAGS="${CFLAGS} -fPIC" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC -Wno-stringop-overflow" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
             echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
         }
 
     echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
 
-    local build_failed
-    set +e +o pipefail
+    # Force ninja to output progress markers even when redirected
+    # We use 'grep-count' as a backup because [x/y] can be inconsistent in logs
+    local total_estimate=$(grep -c "add_executable" "$SOURCE_DIR/CMakeLists.txt" 2>/dev/null || echo "500")
 
-    if command -v ninja &>/dev/null; then
-        ninja -v -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
-        local ninja_pid=$!
-        local pct=0
-        while kill -0 "$ninja_pid" 2>/dev/null; do
-            local last
-            last=$(grep -o '\[[0-9]*/[0-9]*\]' "$log_file" 2>/dev/null | tail -1)
-            if [[ "$last" =~ \[([0-9]+)/([0-9]+)\] ]] && [[ ${BASH_REMATCH[2]} -gt 0 ]]; then
-                pct=$(( BASH_REMATCH[1] * 100 / BASH_REMATCH[2] ))
-            fi
-            printf "\r${NEONPINK}  [ %3s%% ] Building...${NC}" "$pct"
-            sleep 0.2
-        done
-        wait "$ninja_pid"
-        build_failed=$?
-    else
-        make -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
-        local make_pid=$!
-        local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-        local i=0
-        while kill -0 "$make_pid" 2>/dev/null; do
-            printf "\r${CORAL}  %s Building...${NC}" "${spin[$((i++ % ${#spin[@]}))]}"
-            sleep 0.1
-        done
-        wait "$make_pid"
-        build_failed=$?
-    fi
-
-    printf "\r%60s\r" ""
-    set -e -o pipefail
-    if [[ $build_failed -ne 0 ]]; then
-        echo -e "${NEONRED}Build FAILED:${NC}"
-        grep -E 'error:' "$log_file" | tail -10 | \
-            while IFS= read -r line; do echo -e "  ${TOMATO}│${NC} $line"; done
-        echo -e "${SLATE}  Full log: $log_file${NC}"
-        return 1
-    fi
-    echo -e "${NEONGREEN}  [ 100% ] Build complete.${NC}"
+    ninja -v -C "$bdir" > "$log_file" 2>&1 &
+    track_progress $! "$log_file" "ninja" "$total_estimate" "${NEONPINK}"
 
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
     cmake --build "$bdir" --target install >> "$log_file" 2>&1 || {
