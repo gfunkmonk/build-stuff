@@ -286,6 +286,16 @@ case "${1:-}" in
     --help|-h) show_help ;;
 esac
 
+# Pre-pass: detect --gcc/--clang so ARCH_INFO is populated with the right
+# compiler's table before parse_common_flag handles --list-archs.
+for _arg in "$@"; do
+    case "$_arg" in
+        --gcc)   set_compiler gcc ;;
+        --clang) set_compiler clang ;;
+    esac
+done
+declare_arch_info
+
 # Flag Parsing
 while [[ $# -gt 0 ]]; do
     if parse_common_flag "$@"; then
@@ -299,7 +309,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 setup_toolchain_dir
-declare_arch_info
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
