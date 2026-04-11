@@ -21,7 +21,7 @@ GIT_C2="${LEMON}"
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
   [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
-  [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
+  [x86]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
   [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz"
   [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz"
   [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz"
@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
     esac
 done
-DEFAULT_ARCHS="x86_64 i686 aarch64 armv7 armhf"
+DEFAULT_ARCHS="x86_64 x86 aarch64 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 setup_toolchain_dir
 
