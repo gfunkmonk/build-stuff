@@ -4,13 +4,8 @@
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
-ROOT_DIR="$(pwd)/${NAME}-build"
-UPX_REPO="https://github.com/gfunkmonk/upx.git"
-UPX_BRANCH="devel"
-SOURCE_DIR="$ROOT_DIR/upx-src"
-BUILD_BASE="$ROOT_DIR/builds"
-OUTPUT_DIR="$ROOT_DIR/output"
+REPO_URL="https://github.com/gfunkmonk/upx.git"
+REPO_BRANCH="devel"
 DL_COLOR="${HIGHLIGHTER}"
 DL_TC_1="${SLATE}"
 DL_TC_2="${NC}"
@@ -19,6 +14,8 @@ EX_TC_1="${SLATE}"
 EX_TC_2="${NC}"
 FINAL_C="${HELIOTROPE}"
 CLEAN_C="${OCHRE}"
+GIT_C="${SLATE}"
+GIT_C2="${NC}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
@@ -257,17 +254,13 @@ setup_toolchain_dir
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 
-if [[ ! -d "$SOURCE_DIR/.git" ]]; then
-    echo -n -e "${SLATE}==>${NC} Cloning UPX Source (with submodules)... "
-    git clone --branch "$UPX_BRANCH" --recursive --depth 1 "$UPX_REPO" "$SOURCE_DIR" > /dev/null 2>&1
-    echo -e "${NEONGREEN}Done${NC}"
-else
-    # Check if submodules are empty and fix them if needed
-    if [[ -z "$(ls -A "$SOURCE_DIR/vendor/ucl" 2>/dev/null)" ]]; then
-        echo -n -e "${OCHRE}==>${NC} Submodules missing. Repairing... "
-        git -C "$SOURCE_DIR" submodule update --init --recursive > /dev/null 2>&1
-        echo -e "${NEONGREEN}Fixed${NC}"
-    fi
+git_clone
+
+# Check if submodules are empty and fix them if needed
+if [[ -z "$(ls -A "$SOURCE_DIR/vendor/ucl" 2>/dev/null)" ]]; then
+    echo -n -e "${OCHRE}==>${NC} Submodules missing. Repairing... "
+    git -C "$SOURCE_DIR" submodule update --init --recursive > /dev/null 2>&1
+    echo -e "${NEONGREEN}Fixed${NC}"
 fi
 
 if [[ -z "$USER_ARCHS" ]]; then

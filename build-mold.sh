@@ -4,12 +4,8 @@
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
-ROOT_DIR="$(pwd)/${NAME}-build"
-SOURCE_DIR="$ROOT_DIR/${NAME}"
-BUILD_BASE="$ROOT_DIR/build"
-OUTPUT_DIR="$ROOT_DIR/output"
-MOLD_BRANCH="stable"
+REPO_URL="https://github.com/gfunkmonk/mold.git"
+REPO_BRANCH="stable"
 DL_COLOR="${NEONGREEN}"
 DL_TC_1="${SKY}"
 DL_TC_2="${HOTPINK}"
@@ -18,6 +14,8 @@ EX_TC_1="${SKY}"
 EX_TC_2="${NEONBLUE}"
 FINAL_C="${NEONPINK}"
 CLEAN_C="${NEONRED}"
+GIT_C="${SKY}"
+GIT_C2="${HIGHLIGHTER}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -193,11 +191,7 @@ echo -e "${HOTPINK}Starting mold cross-compilation suite...${NC}"
 # Setup Directories
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 
-# Check for mold source
-if [[ ! -d "$SOURCE_DIR/.git" ]]; then
-    echo -e "${SKY}==>${HIGHLIGHTER} Cloning mold source...${NC}"
-    git clone --branch "$MOLD_BRANCH" --depth 1 https://github.com/gfunkmonk/mold.git "$SOURCE_DIR" > /dev/null 2>&1
-fi
+git_clone
 
 # Determine build system
 CMAKE_GENERATOR="Unix Makefiles"

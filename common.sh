@@ -86,6 +86,11 @@ declare -A HASHES_CLANG=(
   [x86_64-unknown-linux-musl.tar.xz]="62f74a4c082249f736662e35c847f73d9ae1134b2a76bfcdb33829d06fa70c92"
 )
 
+NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
+ROOT_DIR="$(pwd)/${NAME}-build"
+SOURCE_DIR="$ROOT_DIR/${NAME}-src"
+BUILD_BASE="$ROOT_DIR/build"
+OUTPUT_DIR="$ROOT_DIR/output"
 JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RESUME_MODE=false
@@ -212,6 +217,16 @@ extract_toolchain() {
         [[ -d "$extract_path" ]] || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
     else
         echo -e "${MINT} Toolchain already extracted.${NC}"
+    fi
+}
+
+# ── Git Clone ──────────────────────────────────────────────────────────────────
+git_clone() {
+    if [[ ! -d "$SOURCE_DIR/.git" ]]; then
+        echo -e "${GIT_C}==>${GIT_C2} Cloning ${NAME} source...${NC}"
+        git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
+    else
+        echo -e "${MINT}✨ Source code present.${NC}"
     fi
 }
 

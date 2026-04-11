@@ -4,12 +4,8 @@
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
-ROOT_DIR="$(pwd)/${NAME}-build"
 REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
-BUILD_BASE="$ROOT_DIR/build"
-OUTPUT_DIR="$ROOT_DIR/output"
 DL_COLOR="${CYAN}"
 DL_TC_1="${MAUVE}"
 DL_TC_2="${NC}"
@@ -18,6 +14,8 @@ EX_TC_1="${MAUVE}"
 EX_TC_2="${NC}"
 FINAL_C="${NEONGREEN}"
 CLEAN_C="${TOMATO}"
+GIT_C="${MAUVE}"
+GIT_C2="${NC}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -109,11 +107,11 @@ build_arch() {
     cp -r "$BUILD_BASE/uasm-src/." "$build_work_dir/"
 
     # 6. Compile with Interactive Progress Bar & Logging
-    local log_file="$ROOT_DIR/build-${arch_key}.log"
+    local log_file="$(pwd)/${NAME}-build/build-${arch_key}.log"
     mkdir -p "$ROOT_DIR/uasm-build"
 
     # This strips the ROOT_DIR from the path for a cleaner display
-    local relative_log="${log_file#$ROOT_DIR/}"
+    local relative_log="${log_file#$(pwd)/}"
 
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
@@ -170,12 +168,7 @@ echo -e "${HELIOTROPE}🚀 Starting UASM Cross-Build Suite...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
 
 # Clone Source once
-if [[ ! -d "$BUILD_BASE/uasm-src/.git" ]]; then
-    echo -e "${MAUVE}==>${NC} Cloning UASM source ($REPO_BRANCH)..."
-    git clone --branch "$REPO_BRANCH" --depth 1 "$REPO_URL" "$BUILD_BASE/uasm-src" > /dev/null 2>&1
-else
-    echo -e "${MINT}✨ Source code present.${NC}"
-fi
+git_clone
 
 # Run targets
 build_all_archs
