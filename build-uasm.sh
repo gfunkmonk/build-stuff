@@ -6,7 +6,8 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-ROOT_DIR="$(pwd)/uasm-build"
+NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
+ROOT_DIR="$(pwd)/${NAME}-build"
 REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
 BUILD_BASE="$ROOT_DIR/build"
@@ -17,6 +18,7 @@ DL_TC_2="${NC}"
 DL_TC_3="${CANARY}"
 EX_TC_1="${MAUVE}"
 EX_TC_2="${NC}"
+FINAL_C="${NEONGREEN}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -49,25 +51,14 @@ success() {
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
 USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
+    if parse_common_flag "$@"; then
+        shift "$COMMON_SHIFT"
+        continue
+    fi
     case "$1" in
-        --gcc)
-            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
-            COMPILER_TYPE="gcc"
-            shift ;;
-        --clang)
-            RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-            COMPILER_TYPE="clang"
-            shift ;;
         -a|--arch)
             USER_ARCHS="$2"
             shift 2 ;;
-        -r|--resume)
-            RESUME_MODE=true
-            shift ;;
-        -j|--jobs)
-            JOBS="$2"
-            shift 2
-            ;;
         -C|--clean)
             echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
             rm -rf "$ROOT_DIR"
@@ -80,7 +71,8 @@ done
 DEFAULT_ARCHS="x86_64 aarch64 i686 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
-TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+setup_toolchain_dir
+
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -135,10 +127,10 @@ build_arch() {
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
 
-    local total_files=$(find . -name "*.c" | wc -l)
+    local total_files=$(find "$build_work_dir" -name "*.c" | wc -l)
     local current_file=0
     set +e
-    make -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
+    make -C "$build_work_dir" -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
     while IFS= read -r line; do
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
             ((current_file++)) || true
@@ -161,8 +153,8 @@ build_arch() {
 
     # 7. Finalize
     local generated_bin=""
-    [[ -f "GccUnixR/uasm" ]] && generated_bin="GccUnixR/uasm"
-    [[ -f "uasm" ]] && generated_bin="uasm"
+    [[ -f "$build_work_dir/GccUnixR/uasm" ]] && generated_bin="$build_work_dir/GccUnixR/uasm"
+    [[ -f "$build_work_dir/uasm" ]] && generated_bin="$build_work_dir/uasm"
 
     if [[ -z "$generated_bin" ]]; then
         echo -e "${CRIMSON}Error: Binary not found after build!${NC}"
@@ -211,5 +203,5 @@ for arch in $ARCHS; do
         success "Built $arch: uasm-$arch ($(numfmt --to=iec-i --suffix=B "$size" 2>/dev/null || echo "$size bytes"))"
     fi
 done
-ls -lh "$OUTPUT_DIR"
 
+final

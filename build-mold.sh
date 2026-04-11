@@ -18,6 +18,7 @@ DL_TC_2="${HOTPINK}"
 DL_TC_3="${CHARTREUSE}"
 EX_TC_1="${SKY}"
 EX_TC_2="${NEONBLUE}"
+FINAL_C="${NEONPINK}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -49,25 +50,14 @@ show_help() {
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
 USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
+    if parse_common_flag "$@"; then
+        shift "$COMMON_SHIFT"
+        continue
+    fi
     case "$1" in
-        --gcc)
-            RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
-            COMPILER_TYPE="gcc"
-            shift ;;
-        --clang)
-            RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
-            COMPILER_TYPE="clang"
-            shift ;;
         -a|--arch)
             USER_ARCHS="$2"
             shift 2 ;;
-        -r|--resume)
-            RESUME_MODE=true
-            shift ;;
-        -j|--jobs)
-            JOBS="$2"
-            shift 2
-            ;;
         -C|--clean)
             echo -e "${NEONRED}💥 Cleaning workspace...${NC}"
             rm -rf "$ROOT_DIR"
@@ -80,7 +70,8 @@ done
 DEFAULT_ARCHS="i686 x86_64 aarch64 armv7hf armv6hf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
-TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+setup_toolchain_dir
+
 # ── Logic ─────────────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -234,6 +225,4 @@ for arch in $ARCHS; do
     build_arch "$arch"
 done
 
-echo -e "\n${NEONPINK}🎊 All requested architectures are finished!${NC}"
-echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}$OUTPUT_DIR${NC}"
-ls -F --color=auto "$OUTPUT_DIR"
+final

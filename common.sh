@@ -86,8 +86,48 @@ declare -A HASHES_CLANG=(
 
 JOBS="$(nproc)"
 COMPILER_TYPE="clang"
-RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
 RESUME_MODE=false
+
+# ── Toolchain Release URLs ────────────────────────────────────────────────────
+GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"
+CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
+RELEASE_BASE="$CLANG_RELEASE_BASE"
+
+# ── Common Helpers ────────────────────────────────────────────────────────────
+
+# Set compiler type and matching release base URL.
+# Usage: set_compiler gcc|clang
+set_compiler() {
+    COMPILER_TYPE="$1"
+    if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+        RELEASE_BASE="$GCC_RELEASE_BASE"
+    else
+        RELEASE_BASE="$CLANG_RELEASE_BASE"
+    fi
+}
+
+# Handle flags shared by every build script.  Returns 0 and sets COMMON_SHIFT
+# to the number of positional parameters consumed; returns 1 when the flag is
+# unrecognised so the caller can handle it.
+# Usage inside a while/case loop:
+#   if parse_common_flag "$@"; then shift "$COMMON_SHIFT"; continue; fi
+COMMON_SHIFT=0
+parse_common_flag() {
+    COMMON_SHIFT=0
+    case "$1" in
+        --gcc)       set_compiler gcc;   COMMON_SHIFT=1; return 0 ;;
+        --clang)     set_compiler clang; COMMON_SHIFT=1; return 0 ;;
+        -r|--resume) RESUME_MODE=true;   COMMON_SHIFT=1; return 0 ;;
+        -j|--jobs)   JOBS="$2";          COMMON_SHIFT=2; return 0 ;;
+    esac
+    return 1
+}
+
+# Derive TOOLCHAIN_DIR from the current COMPILER_TYPE.
+# Call once after all flags have been parsed.
+setup_toolchain_dir() {
+    TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+}
 
 # ── Toolchain Download ────────────────────────────────────────────────────────
 download_toolchain() {
@@ -147,4 +187,11 @@ extract_toolchain() {
     else
         echo -e "${MINT} Toolchain already extracted.${NC}"
     fi
+}
+
+# ── Final ──────────────────────────────────────────────────────────────────────
+final() {
+    echo -e "\n${FINAL_C}🎊 All requested architectures are finished!${NC}"
+    echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}$OUTPUT_DIR${NC}"
+    ls -F --color=auto "$OUTPUT_DIR"
 }

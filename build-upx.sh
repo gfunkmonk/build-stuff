@@ -6,7 +6,8 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-ROOT_DIR="$(pwd)/upx-build"
+NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
+ROOT_DIR="$(pwd)/${NAME}-build"
 UPX_REPO="https://github.com/gfunkmonk/upx.git"
 UPX_BRANCH="devel"
 SOURCE_DIR="$ROOT_DIR/upx-src"
@@ -18,6 +19,7 @@ DL_TC_2="${NC}"
 DL_TC_3="${AQUA}"
 EX_TC_1="${SLATE}"
 EX_TC_2="${NC}"
+FINAL_C="${HELIOTROPE}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
@@ -112,6 +114,7 @@ test_binary() {
         "$bin_path" --version | head -n1 || echo -e "${OCHRE}Native execution failed.${NC}"
     fi
 }
+
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
 build_arch() {
@@ -124,14 +127,14 @@ build_arch() {
     IFS=: read -r triple cmake_proc <<<"$info"
     local tarball="${triple}.tar.xz"
     local out_file="$OUTPUT_DIR/upx-$arch_key"
-    local log_file="$ROOT_DIR/build-$arch.log"
+    local log_file="$ROOT_DIR/build-$arch_key.log"
 
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
     [[ "$RESUME_MODE" == true && -f "$out_file" ]] && { echo -e "${SLATE}⏭️  Skipping $arch_key${NC}"; return; }
 
     echo -e "${NEONBLUE}🔨 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
 
-# 1. Download Toolchain
+    # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     download_toolchain "$tarpath" "$tarball" || return 1
 
@@ -156,8 +159,8 @@ build_arch() {
       sed -i 's/static_assert(alignof/ \/\/ static_assert(alignof/g' "$SOURCE_DIR/src/util/cxxlib.h"
     fi
 
-# 4. Compile with Error Logging
-echo -n -e "${SLATE}==>${NC} Configuring CMake... "
+    # 4. Compile with Error Logging
+    echo -n -e "${SLATE}==>${NC} Configuring CMake... "
 
     if cmake -S "$SOURCE_DIR" -B "$bdir" \
         -DCMAKE_BUILD_TYPE=Release \
@@ -176,7 +179,6 @@ echo -n -e "${SLATE}==>${NC} Configuring CMake... "
         return 1
     fi
     echo -n -e "${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}[  0%]${NC}"
-    # Capture the pipeline exit codes before the if block clears them
     cmake --build "$bdir" --parallel "$JOBS" 2>&1 | tee -a "$log_file" | \
     grep --line-buffered -o '\[.*%\]' | \
     while read -r line; do
@@ -243,18 +245,18 @@ esac
 # Flag Parsing
 USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
+    if parse_common_flag "$@"; then
+        shift "$COMMON_SHIFT"
+        continue
+    fi
     case "$1" in
-        --gcc) COMPILER_TYPE="gcc"; RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/carhartcoat"; shift ;;
-        --clang) COMPILER_TYPE="clang"; shift ;;
         -a|--arch) USER_ARCHS="$2"; shift 2 ;;
-        -r|--resume) RESUME_MODE=true; shift ;;
-        -j|--jobs) JOBS="$2"; shift 2 ;;
         -h|--help) show_help ;;
         *) shift ;;
     esac
 done
 
-TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+setup_toolchain_dir
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"
@@ -272,10 +274,7 @@ else
     fi
 fi
 
-# If the user didn't specify --arch, grab every key from our ARCH_INFO array
 if [[ -z "$USER_ARCHS" ]]; then
-    # ${!ARRAY[@]} expands to all keys in an associative array
-    #ARCHS="${!ARCH_INFO[@]}"
     ARCHS=$(echo "${!ARCH_INFO[@]}" | tr ' ' '\n' | sort | tr '\n' ' ')
 else
     ARCHS="$USER_ARCHS"
@@ -284,7 +283,6 @@ fi
 echo -e "${SLATE}Queueing ${BWHITE}$(echo $ARCHS | wc -w)${NC} targets...${NC}\n"
 
 for arch in $ARCHS; do
-    # Check if the arch actually exists in our table before trying to build
     if [[ -n "${ARCH_INFO[$arch]:-}" ]]; then
         build_arch "$arch"
     else
@@ -292,6 +290,4 @@ for arch in $ARCHS; do
     fi
 done
 
-echo -e "\n${HELIOTROPE}🎊 All tasks completed successfully!${NC}"
-echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}$OUTPUT_DIR${NC}"
-ls -F --color=auto "$OUTPUT_DIR"
+final
