@@ -97,17 +97,21 @@ build_arch() {
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     cd "$ROOT_DIR"
     if [[ ! -d "wolfssl/.git" ]]; then
+        echo -e "${GIT_C}==>${GIT_C2} Cloning wolfssl source...${NC}"
         git clone https://github.com/wolfSSL/wolfssl --depth=1
     else
+        echo -e "${CORAL}✨ Source code for wolfssl present.${NC}"
         git -C wolfssl pull origin
     fi
     local wolfssl_prefix="$ROOT_DIR/wolfssl-libs/$triple"
     mkdir -p "$wolfssl_prefix"
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh...${NC}"
     ./autogen.sh > "$wolfssl_log" 2>&1
     local wolfssl_32bit=""
     [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit"
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
