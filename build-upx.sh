@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
 
@@ -235,7 +233,6 @@ show_help() {
 
 # ── Main Entry ────────────────────────────────────────────────────────────────
 case "${1:-}" in
-    -C|--clean) echo -e "${OCHRE}💥 Nuking work directory...${NC}"; rm -rf "$ROOT_DIR"; exit 0 ;;
     list) list_output; exit 0 ;;
     verify) verify_static; exit 0 ;;
     test) test_binary "${2:-}"; exit 0 ;;
@@ -243,14 +240,12 @@ case "${1:-}" in
 esac
 
 # Flag Parsing
-USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     if parse_common_flag "$@"; then
         shift "$COMMON_SHIFT"
         continue
     fi
     case "$1" in
-        -a|--arch) USER_ARCHS="$2"; shift 2 ;;
         -h|--help) show_help ;;
         *) shift ;;
     esac
@@ -282,12 +277,6 @@ fi
 
 echo -e "${SLATE}Queueing ${BWHITE}$(echo $ARCHS | wc -w)${NC} targets...${NC}\n"
 
-for arch in $ARCHS; do
-    if [[ -n "${ARCH_INFO[$arch]:-}" ]]; then
-        build_arch "$arch"
-    else
-        echo -e "${TOMATO}Skipping unknown architecture: $arch${NC}"
-    fi
-done
+build_all_archs
 
 final

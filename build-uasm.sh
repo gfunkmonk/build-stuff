@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-
 # ── Common Code ───────────────────────────────────────────────────────────────
 source "$(dirname "$0")/common.sh"
 
@@ -49,20 +47,12 @@ success() {
 }
 
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
-USER_ARCHS=""
 while [[ $# -gt 0 ]]; do
     if parse_common_flag "$@"; then
         shift "$COMMON_SHIFT"
         continue
     fi
     case "$1" in
-        -a|--arch)
-            USER_ARCHS="$2"
-            shift 2 ;;
-        -C|--clean)
-            echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
-            rm -rf "$ROOT_DIR"
-            exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${CRIMSON}Unknown option: $1${NC}"; show_help ;;
     esac
@@ -187,13 +177,7 @@ else
 fi
 
 # Run targets
-for arch in $ARCHS; do
-    if [[ -z "${ARCH_INFO[$arch]:-}" ]]; then
-        echo -e "${TOMATO}Skipping unknown architecture: $arch${NC}"
-        continue
-    fi
-    build_arch "$arch"
-done
+build_all_archs
 
 echo -e "\n${HELIOTROPE}🎊 UASM Build completed!${NC}"
 for arch in $ARCHS; do
