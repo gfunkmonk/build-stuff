@@ -170,24 +170,54 @@ build_arch() {
         -DMOLD_USE_SYSTEM_TBB=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_COLOR_MAKEFILE=ON \
+        -DCMAKE_CXX_FLAGS="-Wno-stringop-overflow" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
             echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
         }
 
-    local build_failed=0
-    ${BUILD_CMD:-make} -C "$bdir" 2>&1 | \
-    while IFS= read -r line; do
-        if [[ "$line" =~ \[([[:space:]]*[0-9]+)%\] ]]; then
-            printf "\r${CHARTREUSE}  [ %3s%% ]${NC} %s" "${BASH_REMATCH[1]}" \
-                "$(echo "$line" | sed 's/\[.*%\] //' | cut -c1-60)"
-        fi
-    done; build_failed=${PIPESTATUS[0]}
-    echo ""
+    echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
+
+    local build_failed
+    set +e +o pipefail
+
+    if command -v ninja &>/dev/null; then
+        ninja -v -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
+        local ninja_pid=$!
+        local pct=0
+        while kill -0 "$ninja_pid" 2>/dev/null; do
+            local last
+            last=$(grep -o '\[[0-9]*/[0-9]*\]' "$log_file" 2>/dev/null | tail -1)
+            if [[ "$last" =~ \[([0-9]+)/([0-9]+)\] ]] && [[ ${BASH_REMATCH[2]} -gt 0 ]]; then
+                pct=$(( BASH_REMATCH[1] * 100 / BASH_REMATCH[2] ))
+            fi
+            printf "\r${NEONPINK}  [ %3s%% ] Building...${NC}" "$pct"
+            sleep 0.2
+        done
+        wait "$ninja_pid"
+        build_failed=$?
+    else
+        make -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
+        local make_pid=$!
+        local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+        local i=0
+        while kill -0 "$make_pid" 2>/dev/null; do
+            printf "\r${CORAL}  %s Building...${NC}" "${spin[$((i++ % ${#spin[@]}))]}"
+            sleep 0.1
+        done
+        wait "$make_pid"
+        build_failed=$?
+    fi
+
+    printf "\r%60s\r" ""
     if [[ $build_failed -ne 0 ]]; then
-        echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"
+        echo -e "${NEONRED}Build FAILED:${NC}"
+        grep -E 'error:' "$log_file" | tail -10 | \
+            while IFS= read -r line; do echo -e "  ${TOMATO}│${NC} $line"; done
+        echo -e "${SLATE}  Full log: $log_file${NC}"
         return 1
     fi
-        
+    echo -e "${NEONGREEN}  [ 100% ] Build complete.${NC}"
+
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
     cmake --build "$bdir" --target install >> "$log_file" 2>&1
 
