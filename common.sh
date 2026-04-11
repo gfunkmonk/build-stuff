@@ -180,20 +180,30 @@ download_toolchain() {
         return 0
     fi
     echo -e "${DL_TC_1}==>${DL_TC_2} Fetching toolchain: ${DL_TC_3}$tarball${NC}"
-    curl -fSL -# --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
+
+    # stdbuf -oL flushes each \r-terminated curl -# update immediately to the
+    # pipe instead of batching them, giving smooth real-time progress display.
+    stdbuf -oL curl -fSL -# --retry 3 --create-dirs \
+        -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
     while IFS= read -d $'\r' -r p; do
-        p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
-        : ${p:=0}
-        local scaled=$(( p / 10 ))
+        # curl -# emits "######...  N.N%\r"; extract the integer percentage.
+        p=$(printf '%s' "$p" | tr -dc '0-9.' | cut -d. -f1)
+        # Skip empty values (e.g. redirect notices) and out-of-range integers
+        # so they can never flash the bar backwards or show garbage.
+        [[ -z "$p" ]] && continue
+        (( p > 100 )) && continue
+        local scaled=$(( p / 5 ))
         local bar; bar=$(printf "%${scaled}s" | tr ' ' '=')
-        printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+        printf "\r${DL_COLOR}[ %3d%% ] [ %-20s> ]${NC}" "$p" "$bar"
     done
+
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
-        echo -e "\n${NEONRED}Download failed for $tarball${NC}"
+        printf "\n"
+        echo -e "${NEONRED}Download failed for $tarball${NC}"
         rm -f "$tarpath"
         return 1
     fi
-    echo ""
+    printf "\r${DL_COLOR}[ 100%% ] [ %-20s> ]${NC}\n" "===================="
 }
 
 # ── Hash Verification ─────────────────────────────────────────────────────────
@@ -237,7 +247,7 @@ git_clone() {
         echo -e "${GIT_C}==>${GIT_C2} Cloning ${NAME} source...${NC}"
         git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
     else
-        cd ${SOURCE_DIR}
+        cd "${SOURCE_DIR}"
         git pull origin
         cd ../
         echo -e "${MINT}✨ Source code present.${NC}"

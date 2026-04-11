@@ -118,30 +118,37 @@ build_arch() {
     mkdir -p "$ROOT_DIR"
 
     # This strips the ROOT_DIR from the path for a cleaner display
-    local relative_log="${log_file#"$(pwd)/"}"
+    local relative_log1="${log_file#"$ROOT_DIR/"}"
+    local relative_log="${NAME}-build/$relative_log1"
 
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
 
     local total_files; total_files=$(find "$build_work_dir" -name "*.c" | wc -l)
     local current_file=0
+    printf "\r${CYAN}[%-50s]   0%% (${CANARY}0/%d${NC})" "" "$total_files"
+
     set +e
     make -C "$build_work_dir" -f "$MAKEFILE" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
     while IFS= read -r line; do
         if [[ "$line" == *" -c "* && "$line" == *".c"* ]]; then
             ((current_file++)) || true
-            local percent=0
-            [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 105 / total_files ))
-            [[ $percent -gt 100 ]] && percent=100
+            # If actual steps exceed the dry-run estimate, extend the ceiling so
+            # the bar never shows nonsense like "112/70" or stalls at 99%.
+            [[ $current_file -gt $total_files ]] && total_files=$(( current_file + 3 ))
+            local percent=$(( current_file * 100 / total_files ))
+            [[ $percent -gt 99 ]] && percent=99
             local num_hashes=$(( percent / 2 ))
             local hashes; hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
-            printf "\r${CYAN}[%-50s] %d%% (${CANARY}%d/%d${NC})" \
+            printf "\r${CYAN}[%-50s] %3d%% ${NC}(${CANARY}%d/%d${NC})" \
                 "$hashes" "$percent" "$current_file" "$total_files"
         fi
     done
     local make_exit=${PIPESTATUS[0]}
     set -e
-    echo ""
+    printf "\r${CYAN}[%-50s] 100%% ${NC}(${CANARY}Done${NC})%20s\n" \
+        "##################################################" ""
+
     if [[ "$make_exit" -ne 0 ]]; then
         echo -e "${CRIMSON}Build failed! Check log: $log_file${NC}"
         exit 1

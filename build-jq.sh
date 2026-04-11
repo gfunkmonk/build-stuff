@@ -20,9 +20,9 @@ GIT_C2="${CYAN}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
+  [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
   [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
   [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz"
-  [i686]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
   [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz"
   [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz"
 )
@@ -127,60 +127,61 @@ build_arch() {
 
     # 5. Build with Accurate Progress
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
-    local oni_total=$(make -n -C vendor/oniguruma V=1 2>/dev/null | grep -c " -c " || true)
-    oni_total=$(( oni_total + 1 ))
+    # Count source files once for an accurate, stable total.
+    # Polling .lo files (1 per compiled source file) is independent of make's
+    # internal per-job output buffering, which defeated the previous stdbuf approach.
+    local oni_total
+    oni_total=$(find vendor/oniguruma/src -maxdepth 1 -name "*.c" 2>/dev/null | wc -l)
+    [[ $oni_total -le 0 ]] && oni_total=48
     local oni_step=0
     printf "\r${HELIOTROPE}[%-20s]   0%%${NC} ${LAGOON}(0/%d)${NC}" "" "$oni_total"
-    local oni_exit_file; oni_exit_file=$(mktemp)
     set +e
-    exec 3< <({ stdbuf -i0 -o0 -e0 make -C vendor/oniguruma -j"$JOBS" V=1 LDFLAGS="-static" 2>&1; echo $? > "$oni_exit_file"; } | stdbuf -i0 -o0 -e0 tee -a "$log_file")
-    while read -u 3 -r line; do
-        if [[ "$line" =~ " -c " ]]; then
-            ((oni_step++))
-            # If the real build produces more steps than predicted (e.g. libtool
-            # emits both a wrapper line and a direct compiler line per file),
-            # extend the total so the display never reads "96/70" or shows >99%.
-            [[ $oni_step -gt $oni_total ]] && oni_total=$(( oni_step + 5 ))
-            local op=$(( oni_step * 100 / oni_total ))
-            [[ $op -gt 99 ]] && op=99
-            local oscaled=$(( op / 5 ))
-            local obar=$(printf "%${oscaled}s" | tr ' ' '#')
-            printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$obar" "$op" "$oni_step" "$oni_total"
-        fi
+    make -C vendor/oniguruma -j"$JOBS" V=1 LDFLAGS="-static" >> "$log_file" 2>&1 &
+    local oni_pid=$!
+    while kill -0 "$oni_pid" 2>/dev/null; do
+        oni_step=$(find vendor/oniguruma/src -maxdepth 1 -name "*.lo" 2>/dev/null | wc -l)
+        local op=$(( oni_step * 100 / oni_total ))
+        [[ $op -gt 99 ]] && op=99
+        local oscaled=$(( op / 5 ))
+        local obar
+        obar=$(printf "%${oscaled}s" | tr ' ' '#')
+        printf "\r${NEONBLUE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$obar" "$op" "$oni_step" "$oni_total"
+        sleep 0.1
     done
-    exec 3<&-
+    wait "$oni_pid"
+    local oni_make_exit=$?
     set -e
     printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
 
     echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
-    # Get a fresh count — exclude vendor/oniguruma paths because GNU Make's -n
-    # dry-run recurses into sub-makes and counts those steps even when oniguruma
-    # objects are already built, which would inflate total_steps and cause the
-    # bar to stall well short of 100% during the real build.
-    local total_steps=$(make -n V=1 2>/dev/null | grep " -c " | grep -v "vendor/oniguruma" | wc -l)
-    # Buffer for the link steps
-    total_steps=$(( total_steps + 2 ))
-    local current_step=0
+    # Count jq source files once for an accurate, stable total.
+    local total_steps
+    total_steps=$(find src -maxdepth 1 -name "*.c" 2>/dev/null | wc -l)
+    [[ $total_steps -le 0 ]] && total_steps=24
     # Ensure we start at 0% visible
+    local current_step=0
     printf "\r${HELIOTROPE}[%-20s]   0%%${NC} ${LAGOON}(0/%d)${NC}" "" "$total_steps"
     set +e
-    # Use 'unbuffer' if available, otherwise 'stdbuf -i0 -o0 -e0' for total zero-buffering
-    exec 3< <(stdbuf -i0 -o0 -e0 make -j"$JOBS" V=1 LDFLAGS="-static -all-static" AM_LDFLAGS="-static" 2>&1 | stdbuf -i0 -o0 -e0 tee -a "$log_file")
-    while read -u 3 -r line; do
-        # Look for the '-c' flag which indicates an object file is being compiled.
-        if [[ "$line" =~ " -c " ]]; then
-            ((current_step++))
-            [[ $current_step -gt $total_steps ]] && total_steps=$(( current_step + 5 ))
-            local p=$(( current_step * 100 / total_steps ))
-            [[ $p -gt 99 ]] && p=99
-            local scaled=$(( p / 5 ))
-            local bar=$(printf "%${scaled}s" | tr ' ' '#')
-            # The '\r' and explicit spacing ensures the bar overwrites itself immediately
-            printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$bar" "$p" "$current_step" "$total_steps"
-        fi
+    make -j"$JOBS" V=1 LDFLAGS="-static -all-static" AM_LDFLAGS="-static" >> "$log_file" 2>&1 &
+    local jq_pid=$!
+    while kill -0 "$jq_pid" 2>/dev/null; do
+        current_step=$(find src -maxdepth 1 -name "*.lo" 2>/dev/null | wc -l)
+        local p=$(( current_step * 100 / total_steps ))
+        [[ $p -gt 99 ]] && p=99
+        local scaled=$(( p / 5 ))
+        local bar
+        bar=$(printf "%${scaled}s" | tr ' ' '#')
+        printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$bar" "$p" "$current_step" "$total_steps"
+        sleep 0.1
     done
-    exec 3<&-
+    wait "$jq_pid"
+    local jq_make_exit=$?
     set -e
+    if [[ "$jq_make_exit" -ne 0 ]]; then
+        printf "\n"
+        echo -e "${NEONRED}jq build FAILED. Check $log_file${NC}"
+        return 1
+    fi
 
     # Finalize
     printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
@@ -197,10 +198,10 @@ build_arch() {
 
 mkdir -p "$ROOT_DIR" "$OUTPUT_DIR"
 
+# Clone Source once
 git_clone
 
-for arch in $ARCHS; do
-    build_arch "$arch"
-done
+# Run targets
+build_all_archs
 
 final
