@@ -117,7 +117,7 @@ build_arch() {
     # 5. Build
     local bundle_dir="$SOURCE_DIR/CPP/7zip/Bundles/Alone2"
     # Use double-quotes so ${ARCH_FLAGS} is expanded, and match the whole
-    # CFLAGS_BASE line (^….*) so the sed is idempotent across all arches.
+    # CFLAGS_BASE line (^...*) so the sed is idempotent across all arches.
     sed -i "s|^CFLAGS_BASE =.*|CFLAGS_BASE = -Os -static -ffunction-sections -fdata-sections -fno-stack-protector ${ARCH_FLAGS} -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects -Wno-sign-conversion|" "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
     sed -i 's/LDFLAGS = -Wall/LDFLAGS = -static -Wl,--gc-sections/g' "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
 
