@@ -304,6 +304,10 @@ track_progress() {
                 ;;
         esac
 
+        # If the actual count exceeds the estimate, grow total to match so
+        # the display never shows a nonsensical "100% (455/410)".
+        (( current > total )) && total=$current
+
         # Calculate percentage safely
         if (( total > 0 )); then
             pct=$(( current * 100 / total ))
