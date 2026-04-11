@@ -81,7 +81,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${PEACH}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} ${OCHRE}[${NAVAJO}$triple${OCHRE}]${NC} ${LAVENDER}using ${LIME}$COMPILER_TYPE${NC}"
+    echo -e "${LAVENDER}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} ${PEACH}[${NAVAJO}$triple${PEACH}]${NC} ${LAVENDER}using ${LIME}$COMPILER_TYPE${NC}"
 
     mkdir -p "$TOOLCHAIN_DIR"
 
