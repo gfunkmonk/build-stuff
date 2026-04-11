@@ -135,8 +135,13 @@ build_arch() {
         STRIP="$strip_bin" \
         -j"$JOBS" > "$log_file" 2>&1 &
 
+    # Pre-count expected object files for accurate progress tracking
+    local total_obj
+    total_obj=$(find "$SOURCE_DIR" -name "*.c" -type f 2>/dev/null | wc -l)
+    [[ "$total_obj" -lt 1 ]] && total_obj=75
+
     # Track by counting .o files in the build directory
-    track_progress $! "$log_file" "make-files" 75 "${CYAN}" "$build_work_dir:*.o"
+    track_progress $! "$log_file" "make-files" "$total_obj" "${CYAN}" "$build_work_dir:*.o"
 
     # 7. Finalize
     local generated_bin=""

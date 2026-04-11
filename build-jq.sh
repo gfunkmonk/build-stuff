@@ -127,15 +127,14 @@ build_arch() {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
-    # Oniguruma phase
-    make -j"$JOBS" >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" 120 "${HELIOTROPE}" "vendor/oniguruma/src:*.lo"
+    # Pre-count expected compilation units for accurate progress tracking
+    local total_lo
+    total_lo=$(find "$SOURCE_DIR/vendor/oniguruma/src" "$SOURCE_DIR/src" -name "*.c" -type f 2>/dev/null | wc -l)
+    [[ "$total_lo" -lt 1 ]] && total_lo=80
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
-    # JQ phase
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq + oniguruma (Jobs: $JOBS)...${NC}"
     make -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" 100 "${HELIOTROPE}" "src:*.lo"
+    track_progress $! "$log_file" "make-files" "$total_lo" "${HELIOTROPE}" "$SOURCE_DIR:*.lo"
 
     # Finalize
     #printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
