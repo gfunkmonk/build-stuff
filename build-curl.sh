@@ -96,18 +96,23 @@ build_arch() {
 
     cd "$ROOT_DIR"
     if [[ ! -d "wolfssl/.git" ]]; then
-    git clone https://github.com/wolfSSL/wolfssl --depth=1
+        git clone https://github.com/wolfSSL/wolfssl --depth=1
     else
-    git -C wolfssl/ pull origin
+        git -C wolfssl pull origin
     fi
-    mkdir -p wolfssl-libs
+    local wolfssl_prefix="$ROOT_DIR/wolfssl-libs/$triple"
+    mkdir -p "$wolfssl_prefix"
     cd wolfssl/
+    make distclean >/dev/null 2>&1 || true
     ./autogen.sh
+    local wolfssl_32bit=""
+    [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
-        --prefix=${ROOT_DIR}/wolfssl-libs \
+        --prefix="$wolfssl_prefix" \
+        ${wolfssl_32bit:+"$wolfssl_32bit"} \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
         LDFLAGS="-static -Wl,--gc-sections"
     make -j"$JOBS" V=1 && make install
@@ -130,7 +135,7 @@ build_arch() {
         --disable-ldap \
         --enable-ipv6 \
         --enable-unix-sockets \
-        --with-wolfssl=$ROOT_DIR/wolfssl-libs/ \
+        --with-wolfssl="$wolfssl_prefix" \
         --without-libssh2 \
         --with-zlib \
         --without-brotli \
