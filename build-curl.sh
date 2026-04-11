@@ -92,16 +92,16 @@ build_arch() {
 
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""
-    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32"
+    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32 -DWORD32"
 
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     cd "$ROOT_DIR"
     if [[ ! -d "wolfssl/.git" ]]; then
         echo -e "${GIT_C}==>${GIT_C2} Cloning wolfssl source...${NC}"
-        git clone https://github.com/wolfSSL/wolfssl --depth=1
+        git clone https://github.com/wolfSSL/wolfssl --depth=1  > /dev/null 2>&1
     else
         echo -e "${CORAL}✨ Source code for wolfssl present.${NC}"
-        git -C wolfssl pull origin
+        git -C wolfssl pull origin  > /dev/null 2>&1
     fi
     local wolfssl_prefix="$ROOT_DIR/wolfssl-libs/$triple"
     mkdir -p "$wolfssl_prefix"
@@ -110,15 +110,18 @@ build_arch() {
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh...${NC}"
     ./autogen.sh > "$wolfssl_log" 2>&1
     local wolfssl_32bit=""
-    [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit"
+    if [[ "$arch" == i*86 ]]; then
+        wolfssl_32bit="--enable-32bit --enable-fastmath"
+    fi
     echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
         --prefix="$wolfssl_prefix" \
+        --enable-curl \
         $wolfssl_32bit \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
