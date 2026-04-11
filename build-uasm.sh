@@ -135,9 +135,11 @@ build_arch() {
         STRIP="$strip_bin" \
         -j"$JOBS" > "$log_file" 2>&1 &
 
-    # Pre-count expected object files for accurate progress tracking
+    # Dry-run for an accurate compile-step count (mirrors the real invocation).
     local total_obj
-    total_obj=$(find "$SOURCE_DIR" -name "*.c" -type f 2>/dev/null | wc -l)
+    total_obj=$(make -C "$build_work_dir" -f "$MAKEFILE" -n \
+        CC="$cc_bin ${CFLAGS} ${ARCH_FLAGS}" \
+        STRIP="$strip_bin" 2>/dev/null | grep -c ' -c ' || true)
     [[ "$total_obj" -lt 1 ]] && total_obj=75
 
     # Track by counting .o files in the build directory
