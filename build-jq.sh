@@ -55,7 +55,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-DEFAULT_ARCHS="i686 x86_64 aarch64 armv7hf armv6hf"
+DEFAULT_ARCHS="x86_64 i686 aarch64 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
 
 setup_toolchain_dir
