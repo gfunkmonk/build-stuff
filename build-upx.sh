@@ -164,7 +164,7 @@ build_arch() {
 
     IFS=: read -r triple cmake_proc <<<"$info"
     local tarball="${triple}.tar.xz"
-    local out_file="$OUTPUT_DIR/upx-$arch_key"
+    local out_file="$OUTPUT_DIR/$NAME-$arch_key"
     local log_file="$ROOT_DIR/build-$arch_key.log"
 
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"

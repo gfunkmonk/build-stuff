@@ -75,7 +75,7 @@ build_arch() {
     local info="${ARCH_INFO[$arch_key]}"
     IFS=: read -r triple tarball <<<"$info"
 
-    local out_file="$OUTPUT_DIR/uasm-$arch_key"
+    local out_file="$OUTPUT_DIR/$NAME-$arch_key"
 
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 

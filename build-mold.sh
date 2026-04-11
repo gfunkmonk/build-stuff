@@ -67,7 +67,7 @@ build_arch() {
     local arch="$1"
     local info="${ARCH_INFO[$arch]}"
     IFS=: read -r triple tarball cmake_proc <<<"$info"
-    local out_file="$OUTPUT_DIR/mold-$arch"
+    local out_file="$OUTPUT_DIR/$NAME-$arch"
     local log_file="$ROOT_DIR/build-$arch.log"
 
     echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
