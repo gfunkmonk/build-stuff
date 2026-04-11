@@ -17,6 +17,7 @@ DL_TC_3="${CHARTREUSE}"
 EX_TC_1="${SKY}"
 EX_TC_2="${NEONBLUE}"
 FINAL_C="${NEONPINK}"
+CLEAN_C="${NEONRED}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
