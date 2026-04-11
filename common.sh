@@ -328,8 +328,16 @@ track_progress() {
         local space_str=$(printf "%${empty}s")
 
         # \r moves cursor to start, \e[K clears the line
-        printf "\r${color}%s [ %s%s ] %3d%% (%s/%s)${NC}\e[K" \
-            "${spin[$i]}" "$bar_str" "$space_str" "$pct" "$current" "$total"
+        # When file-count hits 100% but the process is still alive (e.g.
+        # the linker is running after all .o files are written), replace the
+        # stale numeric label with "Linking..." so the wait is self-explaining.
+        if (( pct >= 100 )); then
+            printf "\r${color}%s [ %s ] Linking...${NC}\e[K" \
+                "${spin[$i]}" "$bar_str"
+        else
+            printf "\r${color}%s [ %s%s ] %3d%% (%s/%s)${NC}\e[K" \
+                "${spin[$i]}" "$bar_str" "$space_str" "$pct" "$current" "$total"
+        fi
 
         sleep 0.2
     done
