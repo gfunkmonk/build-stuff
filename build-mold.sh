@@ -13,6 +13,11 @@ BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 MOLD_BRANCH="stable"
 DL_COLOR="${NEONGREEN}"
+DL_TC_1="${SKY}"
+DL_TC_2="${HOTPINK}"
+DL_TC_3="${CHARTREUSE}"
+EX_TC_1="${SKY}"
+EX_TC_2="${NEONBLUE}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -98,49 +103,17 @@ build_arch() {
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
 
-    # 1. Download Toolchain (Sunflower Style)
+    # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
-    if [[ ! -f "$tarpath" ]]; then
-        echo -e "${SKY}==>${HOTPINK} Fetching toolchain...${NC}"
-        curl -fSL -# --retry 3 -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | while IFS= read -d $'\r' -r p; do
-            p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1); : ${p:=0}
-            local scaled=$(( p / 10 ))
-            local bar=$(printf "%${scaled}s" | tr ' ' '=')
-            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
-        done
-        [[ "${PIPESTATUS[0]}" -eq 0 ]] || { echo -e "\n${NEONRED}Download failed.${NC}"; exit 1; }
-        echo ""
-    fi
+    download_toolchain "$tarpath" "$tarball" || exit 1
 
     # 2. Hash Verification
     echo -e "${PEACH}🛡️  Verifying Integrity...${NC}"
-    local expected
-    if [[ "$COMPILER_TYPE" == "gcc" ]]; then
-        expected="${HASHES_GCC[$tarball]}"
-    else
-        expected="${HASHES_CLANG[$tarball]}"
-    fi
-
-    local actual=$(sha256sum "$tarpath" | awk '{print $1}')
-    if [[ "$actual" != "$expected" ]]; then
-        echo -e "${NEONRED}CRITICAL: Hash mismatch for $tarball!${NC}"
-        echo -e "${BWHITE}Expected: $expected${NC}"
-        echo -e "${BWHITE}Got     : $actual${NC}"
-        rm -f "$tarpath" # Remove bad download
-        exit 1
-    fi
+    verify_hash "$tarpath" "$tarball" || exit 1
 
     # 3. Extraction Check
     local extract_path="$TOOLCHAIN_DIR/$triple"
-    if [[ ! -d "$extract_path" ]]; then
-        echo -e "${SKY}==>${NEONBLUE} Extracting toolchain...${NC}"
-        mkdir -p "$extract_path"
-        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR"
-        # Sanity check after extraction
-        [[ -d "$extract_path" ]] || { echo -e "${NEONRED}Extraction failed!${NC}"; exit 1; }
-    else
-        echo -e "${MINT}✨ Toolchain directory already exists. Skipping extraction.${NC}"
-    fi
+    extract_toolchain "$tarpath" "$triple" || exit 1
 
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"

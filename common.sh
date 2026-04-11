@@ -88,3 +88,63 @@ JOBS="$(nproc)"
 COMPILER_TYPE="clang"
 RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/magazine/"
 RESUME_MODE=false
+
+# ── Toolchain Download ────────────────────────────────────────────────────────
+download_toolchain() {
+    local tarpath="$1"
+    local tarball="$2"
+    if [[ -f "$tarpath" ]]; then
+        echo -e "${MINT}✨ Using cached toolchain: $tarball${NC}"
+        return 0
+    fi
+    echo -e "${DL_TC_1}==>${DL_TC_2} Fetching toolchain: ${DL_TC_3}$tarball${NC}"
+    curl -fSL -# --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
+    while IFS= read -d $'\r' -r p; do
+        p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
+        : ${p:=0}
+        local scaled=$(( p / 10 ))
+        local bar=$(printf "%${scaled}s" | tr ' ' '=')
+        printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+    done
+    if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
+        echo -e "\n${TOMATO}Download failed for $tarball${NC}"
+        rm -f "$tarpath"
+        return 1
+    fi
+    echo ""
+}
+
+# ── Hash Verification ─────────────────────────────────────────────────────────
+verify_hash() {
+    local tarpath="$1"
+    local tarball="$2"
+    local expected
+    [[ "$COMPILER_TYPE" == "gcc" ]] && expected="${HASHES_GCC[$tarball]}" || expected="${HASHES_CLANG[$tarball]}"
+    local actual
+    actual=$(sha256sum "$tarpath" | awk '{print $1}')
+    if [[ -z "$expected" ]]; then
+        echo -e "${TOMATO}CRITICAL: No known hash for $tarball (COMPILER_TYPE=$COMPILER_TYPE)${NC}"
+        return 1
+    fi
+    if [[ "$actual" != "$expected" ]]; then
+        echo -e "${TOMATO}CRITICAL: Hash mismatch for $tarball!${NC}"
+        echo -e "Expected: $expected\nGot: $actual"
+        rm -f "$tarpath"
+        return 1
+    fi
+}
+
+# ── Toolchain Extraction ──────────────────────────────────────────────────────
+extract_toolchain() {
+    local tarpath="$1"
+    local triple="$2"
+    local extract_path="$TOOLCHAIN_DIR/$triple"
+    if [[ ! -d "$extract_path" ]]; then
+        echo -e "${EX_TC_1}==>${EX_TC_2} Extracting toolchain...${NC}"
+        mkdir -p "$extract_path"
+        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR" || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
+        [[ -d "$extract_path" ]] || { echo -e "${TOMATO}Extraction failed!${NC}"; return 1; }
+    else
+        echo -e "${MINT} Toolchain already extracted.${NC}"
+    fi
+}

@@ -12,6 +12,11 @@ REPO_BRANCH="v2.58"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 DL_COLOR="${CYAN}"
+DL_TC_1="${MAUVE}"
+DL_TC_2="${NC}"
+DL_TC_3="${CANARY}"
+EX_TC_1="${MAUVE}"
+EX_TC_2="${NC}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -98,58 +103,15 @@ build_arch() {
 
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
-    if [[ ! -f "$tarpath" ]]; then
-        echo -e "${MAUVE}==>${NC} Fetching toolchain: ${CANARY}$tarball${NC}"
-        # We use -L to follow redirects and -# for the bar
-        curl -fSL -# --retry 3 --create-dirs -o "$tarpath" "$RELEASE_BASE/$tarball" 2>&1 | \
-        while IFS= read -d $'\r' -r p; do
-            # The '##*' strips everything up to the last space,
-            # and '${p%%%*}' strips the trailing percentage sign.
-            # This is faster and more reliable than expr in a tight loop.
-            local clean_p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
-            # Default to 0 if clean_p is empty
-            : ${clean_p:=0}
-            # Scale for the 10-step Sunflower bar
-            local scaled=$(( clean_p / 10 ))
-            if [ "$scaled" -gt 0 ]; then
-                # Using a native bash string generator instead of eval/seq for speed/safety
-                bar=$(printf '%.0s=' $(seq 1 "$scaled"))
-            else
-                bar=""
-            fi
-            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$clean_p" "$bar"
-        done
-        if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
-            echo -e "\n${CRIMSON}Download failed for $tarball${NC}"
-            rm -f "$tarpath"
-            exit 1
-        fi
-        echo -e "\n${CHARTREUSE}✨ Download Complete.${NC}"
-    else
-        echo -e "${MINT}✨ Using cached tarball: $tarball${NC}"
-    fi
+    download_toolchain "$tarpath" "$tarball" || exit 1
 
     # 2. Hash Verification
     echo -e "${CORAL}🛡️  Verifying Integrity...${NC}"
-    local expected
-    [[ "$COMPILER_TYPE" == "gcc" ]] && expected="${HASHES_GCC[$tarball]}" || expected="${HASHES_CLANG[$tarball]}"
+    verify_hash "$tarpath" "$tarball" || exit 1
 
-    local actual=$(sha256sum "$tarpath" | awk '{print $1}')
-    if [[ "$actual" != "$expected" ]]; then
-        echo -e "${CRIMSON}CRITICAL: Hash mismatch for $tarball!${NC}"
-        echo -e "Expected: $expected\nGot: $actual"
-        rm -f "$tarpath"
-        exit 1
-    fi
-
-    # 3. Extraction with verification
+    # 3. Extraction
     local extract_path="$TOOLCHAIN_DIR/$triple"
-    if [[ ! -d "$extract_path" ]]; then
-        echo -e "${MAUVE}==>${NC} Extracting toolchain..."
-        tar -xJf "$tarpath" -C "$TOOLCHAIN_DIR"
-    else
-        echo -e "${MINT}✨ Toolchain already extracted.${NC}"
-    fi
+    extract_toolchain "$tarpath" "$triple" || exit 1
 
     # 4. Compiler Path Setup
     local bin_dir="$extract_path/bin"
