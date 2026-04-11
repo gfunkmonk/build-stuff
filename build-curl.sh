@@ -112,7 +112,7 @@ build_arch() {
         --disable-shared \
         --enable-static \
         --prefix="$wolfssl_prefix" \
-        ${wolfssl_32bit:+"$wolfssl_32bit"} \
+        $wolfssl_32bit \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
         LDFLAGS="-static -Wl,--gc-sections"
     make -j"$JOBS" V=1 && make install
