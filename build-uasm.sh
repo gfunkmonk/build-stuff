@@ -12,6 +12,11 @@ REPO_BRANCH="v2.58"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 DL_COLOR="${CYAN}"
+DL_TC_1="${MAUVE}"
+DL_TC_2="${NC}"
+DL_TC_3="${CANARY}"
+EX_TC_1="${MAUVE}"
+EX_TC_2="${NC}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
