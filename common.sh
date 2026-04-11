@@ -94,7 +94,7 @@ download_toolchain() {
     local tarpath="$1"
     local tarball="$2"
     if [[ -f "$tarpath" ]]; then
-        echo -e "${MINT}✨ Using cached toolchain: $tarball${NC}"
+        echo -e "${MINT}Using cached toolchain: $tarball${NC}"
         return 0
     fi
     echo -e "${DL_TC_1}==>${DL_TC_2} Fetching toolchain: ${DL_TC_3}$tarball${NC}"
