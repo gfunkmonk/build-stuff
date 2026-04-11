@@ -391,7 +391,7 @@ verify_binary_arch() {
     esac
 
     if [[ "$machine" == *"$expected"* ]]; then
-        echo -e "${NEONGREEN}  ✓ arch verified:${NC} ${SLATE}$machine${NC}"
+        echo -e "${NEONGREEN}  ✓ arch verified:${NC} ${GOLDENROD}$machine${NC}"
     else
         echo -e "${NEONRED}  ✗ ARCH MISMATCH for $(basename "$bin")!${NC}"
         echo -e "    Expected machine containing: ${LEMON}$expected${NC}"
