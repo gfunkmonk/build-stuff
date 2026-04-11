@@ -12,6 +12,7 @@ SOURCE_DIR="$ROOT_DIR/${NAME}"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
 MOLD_BRANCH="stable"
+DL_COLOR="${NEONGREEN}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -32,7 +33,7 @@ show_help() {
     echo -e "  ${NEONGREEN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${NEONGREEN}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${NEONGREEN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
-    echo -e "  ${NEONGREEN}-C|--clean${NC}        Wipe build, toolchains, and output"
+    echo -e "  ${NEONGREEN}-C|--clean${NC}        Wipe build and output"
     echo -e "  ${NEONGREEN}-h|--help${NC}         Show this help"
     echo ""
     echo -e "${ORANGE}Example:${NC} $0 --arch \"x86_64 aarch64\" --resume --gcc"
@@ -105,7 +106,7 @@ build_arch() {
             p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1); : ${p:=0}
             local scaled=$(( p / 10 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '=')
-            printf "\r${NEONGREEN}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
         done
         [[ "${PIPESTATUS[0]}" -eq 0 ]] || { echo -e "\n${NEONRED}Download failed.${NC}"; exit 1; }
         echo ""
@@ -173,29 +174,28 @@ build_arch() {
             echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
         }
 
-echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
-    
-    # Recalculate total files (including generated headers/objects)
-    local total_files=$(find "$SOURCE_DIR" -name "*.cc" -o -name "*.c" | wc -l)
-    # Give a 10% buffer for generated shim files to keep the denominator realistic
-    total_files=$(( total_files + (total_files / 10) ))
+    echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
+
     local current_file=0
+    # Use a rolling animation character to show life even if the count is high
+    local spin='-\|/'
+    local i=0
 
     set +e
-    # Force VERBOSE=1 and stdbuf to ensure every compiler call is caught
     exec 3< <(VERBOSE=1 stdbuf -oL ${BUILD_CMD} -C "$bdir" 2>&1 | tee -a "$log_file")
 
     while read -u 3 -r line; do
         # Detect the compiler execution lines
         if [[ "$line" == *"Building"* && "$line" == *".o"* ]]; then
             ((current_file++))
-            # Calculate percentage with a 100% cap
-            local p=$(( current_file * 100 / total_files ))
-            if [ "$p" -gt 100 ]; then p=100; fi
+            i=$(( (i+1) % 4 ))
+            # Since we can't trust the total file count in mold, we use 
+            # a dynamic bar that grows but resets or "scrolls" if it exceeds a limit
+            local p=$(( current_file % 100 ))
             local scaled=$(( p / 5 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '#')
-            # Print the updated bar with the current count
-            printf "\r${CHARTREUSE}[%-20s] %3d%%${NC} ${SLATE}(%d total objects)${NC}" "$bar" "$p" "$current_file"
+            # Display: [######      ] [Counter] [Spinner]
+            printf "\r${CHARTREUSE}[%-20s]${NC} ${BWHITE}%d objects${NC} ${SKY}%s${NC}" "$bar" "$current_file" "${spin:$i:1}"
         fi
     done
     exec 3<&-

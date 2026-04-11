@@ -12,6 +12,7 @@ UPX_BRANCH="devel"
 SOURCE_DIR="$ROOT_DIR/upx-src"
 BUILD_BASE="$ROOT_DIR/builds"
 OUTPUT_DIR="$ROOT_DIR/output"
+DL_COLOR="${HIGHLIGHTER}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare -A ARCH_INFO=(
@@ -138,7 +139,7 @@ build_arch() {
             local scaled=$(( p / 10 ))
             local bar=$(printf "%${scaled}s" | tr ' ' '=')
             # Print the Sunflower-style status
-            printf "\r${HIGHLIGHTER}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
+            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
         done
         # Check PIPESTATUS[0] (the exit code of curl)
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
@@ -243,7 +244,7 @@ show_help() {
     echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
-    echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds, source, and toolchains"
+    echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds and source"
     echo ""
     echo -e "${BWHITE}COMMANDS:${NC}"
     echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"

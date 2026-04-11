@@ -11,6 +11,7 @@ REPO_URL="https://github.com/gfunkmonk/UASM.git"
 REPO_BRANCH="v2.58"
 BUILD_BASE="$ROOT_DIR/build"
 OUTPUT_DIR="$ROOT_DIR/output"
+DL_COLOR="${CYAN}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -64,7 +65,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -C|--clean)
             echo -e "${TOMATO}💥 Cleaning workspace...${NC}"
-            rm -rf "$ROOT_DIR/toolchains" "$BUILD_BASE" "$OUTPUT_DIR"
+            rm -rf "$ROOT_DIR"
             exit 0 ;;
         -h|--help) show_help ;;
         *) echo -e "${CRIMSON}Unknown option: $1${NC}"; show_help ;;
@@ -116,7 +117,7 @@ build_arch() {
             else
                 bar=""
             fi
-            printf "\r${CYAN}[ %3d%% ] [ %-10s> ]${NC}" "$clean_p" "$bar"
+            printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$clean_p" "$bar"
         done
         if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
             echo -e "\n${CRIMSON}Download failed for $tarball${NC}"
