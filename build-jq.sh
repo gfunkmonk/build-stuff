@@ -38,6 +38,7 @@ show_help() {
     echo -e "  ${HELIOTROPE}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${HELIOTROPE}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
     echo -e "  ${HELIOTROPE}-C|--clean${NC}        Wipe build and output"
+    echo -e "  ${HELIOTROPE}--list-archs${NC}      Print all available target architectures"
     echo -e "  ${HELIOTROPE}-h|--help${NC}         Show this help"
     echo ""
     exit 0
@@ -145,7 +146,7 @@ build_arch() {
         local oscaled=$(( op / 5 ))
         local obar
         obar=$(printf "%${oscaled}s" | tr ' ' '#')
-        printf "\r${NEONBLUE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$obar" "$op" "$oni_step" "$oni_total"
+        printf "\r${HELIOTROPE}[%-20s] %3d%%${NC} ${LAGOON}(%d/%d)${NC}" "$obar" "$op" "$oni_step" "$oni_total"
         sleep 0.1
     done
     wait "$oni_pid"
@@ -191,8 +192,12 @@ build_arch() {
     # Finalize
     printf "\r${HELIOTROPE}[####################] 100%%${NC} ${LAGOON}(Complete)${NC}\n"
     cp jq "$out_file"
-    "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
-    
+    if [[ -x "$strip" ]]; then
+        echo -e "${HIGHLIGHTER}==>${NC} ${SLATE}Stripping symbols...${NC}"
+        "$strip" "$out_file"
+    fi
+
+    verify_binary_arch "$out_file" "$triple"
     local final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${PEACH}$final_size${NC})"
 }

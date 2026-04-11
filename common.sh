@@ -11,6 +11,7 @@ CHARTREUSE="\033[38;2;127;255;0m"
 CORAL="\033[38;2;240;128;128m"
 CRIMSON="\033[38;2;220;20;60m"
 CYAN="\033[1;36m"
+GOLDENROD="\033[38;2;218;165;32m"
 HELIOTROPE="\033[38;2;223;115;255m"
 HIGHLIGHTER="\033[38;2;248;255;15m"
 HOTPINK="\033[38;2;255;105;180m"
@@ -19,6 +20,7 @@ LAGOON="\033[38;2;142;235;236m"
 LEMON="\033[38;2;255;244;79m"
 MAUVE="\033[38;2;224;175;255m"
 MINT="\033[38;2;152;255;152m"
+NAVAJO="\033[38;2;255;222;173m"
 NEONBLUE="\033[38;2;4;218;255m"
 NEONGREEN="\033[38;2;57;255;20m"
 NEONPINK="\033[38;2;255;19;240m"
@@ -142,6 +144,16 @@ parse_common_flag() {
         -j|--jobs)   JOBS="$2";          COMMON_SHIFT=2; return 0 ;;
         -a|--arch)   USER_ARCHS="$2";    COMMON_SHIFT=2; return 0 ;;
         -C|--clean)  clean_workspace;    COMMON_SHIFT=1; return 0 ;;
+        --list-archs)
+            # ARCH_INFO is declared in the calling script; this flag is only
+            # meaningful after that declaration has run.  parse_common_flag is
+            # called inside the while loop that immediately follows, so by the
+            # time --list-archs is reached ARCH_INFO is already populated.
+            echo -e "${BWHITE}Available architectures:${NC}"
+            for key in $(echo "${!ARCH_INFO[@]}" | tr ' ' '\n' | sort); do
+                echo -e "  ${GOLDENROD}$key${NC}  ${NAVAJO}→ ${ARCH_INFO[$key]%%:*}${NC}"
+            done
+            exit 0 ;;
     esac
     return 1
 }
@@ -240,6 +252,56 @@ extract_toolchain() {
         [[ -d "$extract_path" ]] || { echo -e "${NEONRED}Extraction failed!${NC}"; return 1; }
     else
         echo -e "${EX_TC_3} Toolchain already extracted.${NC}"
+    fi
+}
+
+# ── Binary Architecture Verification ─────────────────────────────────────────
+# Verify that a built binary's ELF machine type matches the expected target.
+# Usage: verify_binary_arch <binary_path> <triple>
+# The triple's leading component (aarch64, armv7, x86_64, i686, ...) is mapped
+# to its ELF EM_ machine string so mismatches are caught before release.
+verify_binary_arch() {
+    local bin="$1"
+    local triple="$2"
+
+    if ! command -v readelf &>/dev/null; then
+        echo -e "${SLATE}  (readelf not found — skipping arch verification)${NC}"
+        return 0
+    fi
+
+    local machine; machine=$(readelf -h "$bin" 2>/dev/null | awk -F: '/Machine/{gsub(/^[[:space:]]+/,"",$2); print $2}')
+
+    # Map triple prefix → expected readelf Machine string
+    local arch="${triple%%-*}"   # e.g. "aarch64" from "aarch64-unknown-linux-musl"
+    local expected
+    case "$arch" in
+        aarch64)              expected="AArch64" ;;
+        armv[5-7]|arm)        expected="ARM" ;;
+        x86_64)               expected="Advanced Micro Devices X86-64" ;;
+        i[3-6]86)             expected="Intel 80386" ;;
+        mips64*)              expected="MIPS R3000" ;;   # readelf reports MIPS for all MIPS
+        mips*)                expected="MIPS R3000" ;;
+        riscv64)              expected="RISC-V" ;;
+        riscv32)              expected="RISC-V" ;;
+        powerpc64le|powerpc64) expected="PowerPC64" ;;
+        powerpc*|powerpcle)   expected="PowerPC" ;;
+        s390x)                expected="IBM S/390" ;;
+        loongarch64)          expected="LoongArch" ;;
+        m68k)                 expected="Motorola m68k" ;;
+        sh4)                  expected="Renesas / SuperH SH" ;;
+        or1k)                 expected="OpenRISC" ;;
+        *)
+            echo -e "${SLATE}  (no arch mapping for '$arch' — skipping verification)${NC}"
+            return 0 ;;
+    esac
+
+    if [[ "$machine" == *"$expected"* ]]; then
+        echo -e "${NEONGREEN}  ✓ arch verified:${NC} ${SLATE}$machine${NC}"
+    else
+        echo -e "${NEONRED}  ✗ ARCH MISMATCH for $(basename "$bin")!${NC}"
+        echo -e "    Expected machine containing: ${LEMON}$expected${NC}"
+        echo -e "    Got:                         ${TOMATO}$machine${NC}"
+        return 1
     fi
 }
 

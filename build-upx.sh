@@ -18,6 +18,71 @@ CLEAN_C="${OCHRE}"
 GIT_C="${SLATE}"
 GIT_C2="${NC}"
 
+# ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
+declare_arch_info() {
+  if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+    declare -A ARCH_INFO=(
+      [i386]="i586-unknown-linux-musl:i586"
+      [i486]="i686-unknown-linux-musl:i686"
+      [i586]="i586-unknown-linux-musl:i586"
+      [i686]="i686-unknown-linux-musl:i686"
+      [x86_64]="x86_64-unknown-linux-musl:x86_64"
+      [arm]="arm-unknown-linux-musleabi:arm"
+      [armhf]="arm-unknown-linux-musleabihf:arm"
+      [armv5]="armv5-unknown-linux-musleabi:armv5"
+      [armv6]="armv6-unknown-linux-musleabi:arm"
+      [armv6hf]="armv6-unknown-linux-musleabihf:arm"
+      [armv7]="armv7-unknown-linux-musleabi:armv7"
+      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+      [m68k]="m68k-unknown-linux-musl:m68k"
+      [mips]="mips-unknown-linux-musl:mips"
+      [mips-sf]="mips-unknown-linux-muslsf:mips"
+      [mips64]="mips64-unknown-linux-musl:mips64"
+      [mips64el]="mips64el-unknown-linux-musl:mips64el"
+      [mipsel]="mipsel-unknown-linux-musl:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+      [or1k]="or1k-unknown-linux-musl:or1k"
+      [powerpc]="powerpc-unknown-linux-musl:powerpc"
+      [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+      [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
+      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+      [riscv32]="riscv32-unknown-linux-musl:riscv32"
+      [riscv64]="riscv64-unknown-linux-musl:riscv64"
+      [s390x]="s390x-ibm-linux-musl:s390x"
+      [sh4]="sh4-multilib-linux-musl:sh4")
+  else
+    declare -A ARCH_INFO=(
+      [i586]="i586-unknown-linux-musl:i586"
+      [i686]="i686-unknown-linux-musl:i686"
+      [x86_64]="x86_64-unknown-linux-musl:x86_64"
+      [arm]="arm-unknown-linux-musleabi:arm"
+      [armhf]="arm-unknown-linux-musleabihf:arm"
+      [armv7]="armv7-unknown-linux-musleabi:armv7"
+      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+      [m68k]="m68k-unknown-linux-musl:m68k"
+      [mips]="mips-unknown-linux-musl:mips"
+      [mips-sf]="mips-unknown-linux-muslsf:mips"
+      [mips64]="mips64-unknown-linux-musl:mips64"
+      [mips64el]="mips64el-unknown-linux-musl:mips64el"
+      [mipsel]="mipsel-unknown-linux-musl:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+      [or1k]="or1k-unknown-linux-musl:or1k"
+      [powerpc]="powerpc-unknown-linux-musl:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+      [riscv32]="riscv32-unknown-linux-musl:riscv32"
+      [riscv64]="riscv64-unknown-linux-musl:riscv64"
+      [s390x]="s390x-ibm-linux-musl:s390x")
+  fi
+}
+
 # ── Helper Subcommands ────────────────────────────────────────────────────────
 
 list_output() {
@@ -179,6 +244,7 @@ build_arch() {
 
     cp "$bin_found" "$out_file"
     "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
+    verify_binary_arch "$out_file" "$triple"
     echo -e "${NEONGREEN}✅ Build Success:${NC} ${BWHITE}upx-$arch_key${NC} (${AQUA}$(du -sh "$out_file" | awk '{print $1}')${NC})"
 }
 
@@ -197,6 +263,7 @@ show_help() {
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
     echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds and source"
+    echo -e "  ${NEONBLUE}--list-archs${NC}        Print all available target architectures"
     echo ""
     echo -e "${BWHITE}COMMANDS:${NC}"
     echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"
@@ -232,70 +299,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 setup_toolchain_dir
-
-# ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
-# Initialized here, after flag parsing, so --gcc selects the correct (larger) table.
-if [[ "$COMPILER_TYPE" == "gcc" ]]; then
-  declare -A ARCH_INFO=(
-    [i386]="i586-unknown-linux-musl:i586"
-    [i486]="i686-unknown-linux-musl:i686"
-    [i586]="i586-unknown-linux-musl:i586"
-    [i686]="i686-unknown-linux-musl:i686"
-    [x86_64]="x86_64-unknown-linux-musl:x86_64"
-    [arm]="arm-unknown-linux-musleabi:arm"
-    [armhf]="arm-unknown-linux-musleabihf:arm"
-    [armv5]="armv5-unknown-linux-musleabi:armv5"
-    [armv6]="armv6-unknown-linux-musleabi:arm"
-    [armv6hf]="armv6-unknown-linux-musleabihf:arm"
-    [armv7]="armv7-unknown-linux-musleabi:armv7"
-    [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-    [aarch64]="aarch64-unknown-linux-musl:aarch64"
-    [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-    [m68k]="m68k-unknown-linux-musl:m68k"
-    [mips]="mips-unknown-linux-musl:mips"
-    [mips-sf]="mips-unknown-linux-muslsf:mips"
-    [mips64]="mips64-unknown-linux-musl:mips64"
-    [mips64el]="mips64el-unknown-linux-musl:mips64el"
-    [mipsel]="mipsel-unknown-linux-musl:mipsel"
-    [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
-    [or1k]="or1k-unknown-linux-musl:or1k"
-    [powerpc]="powerpc-unknown-linux-musl:powerpc"
-    [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
-    [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
-    [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
-    [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
-    [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
-    [riscv32]="riscv32-unknown-linux-musl:riscv32"
-    [riscv64]="riscv64-unknown-linux-musl:riscv64"
-    [s390x]="s390x-ibm-linux-musl:s390x"
-    [sh4]="sh4-multilib-linux-musl:sh4")
-else
-  declare -A ARCH_INFO=(
-    [i586]="i586-unknown-linux-musl:i586"
-    [i686]="i686-unknown-linux-musl:i686"
-    [x86_64]="x86_64-unknown-linux-musl:x86_64"
-    [arm]="arm-unknown-linux-musleabi:arm"
-    [armhf]="arm-unknown-linux-musleabihf:arm"
-    [armv7]="armv7-unknown-linux-musleabi:armv7"
-    [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-    [aarch64]="aarch64-unknown-linux-musl:aarch64"
-    [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-    [m68k]="m68k-unknown-linux-musl:m68k"
-    [mips]="mips-unknown-linux-musl:mips"
-    [mips-sf]="mips-unknown-linux-muslsf:mips"
-    [mips64]="mips64-unknown-linux-musl:mips64"
-    [mips64el]="mips64el-unknown-linux-musl:mips64el"
-    [mipsel]="mipsel-unknown-linux-musl:mipsel"
-    [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
-    [or1k]="or1k-unknown-linux-musl:or1k"
-    [powerpc]="powerpc-unknown-linux-musl:powerpc"
-    [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
-    [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
-    [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
-    [riscv32]="riscv32-unknown-linux-musl:riscv32"
-    [riscv64]="riscv64-unknown-linux-musl:riscv64"
-    [s390x]="s390x-ibm-linux-musl:s390x")
-fi
+declare_arch_info
 
 echo -e "${HELIOTROPE}🚀 Initializing UPX Cross-Build Engine...${NC}"
 mkdir -p "$TOOLCHAIN_DIR" "$BUILD_BASE" "$OUTPUT_DIR"

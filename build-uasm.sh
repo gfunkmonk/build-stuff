@@ -38,6 +38,7 @@ show_help() {
     echo -e "  ${CHARTREUSE}-r|--resume${NC}          Skip architectures already found in output/"
     echo -e "  ${CHARTREUSE}-j|--jobs N${NC}          Parallel make jobs (default: auto-detected)"
     echo -e "  ${CHARTREUSE}-C|--clean${NC}           Wipe build artifacts and source"
+    echo -e "  ${CHARTREUSE}--list-archs${NC}         Print all available target architectures"
     echo -e "  ${CHARTREUSE}-h|--help${NC}            Show this menu"
     exit 0
 }
@@ -172,6 +173,7 @@ build_arch() {
         "$strip_bin" "$out_file"
     fi
 
+    verify_binary_arch "$out_file" "$triple"
     local final_size; final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "${CHARTREUSE}✅ Successfully built: ${BWHITE}uasm-$arch_key${NC} (${CANARY}$final_size${NC})"
 }

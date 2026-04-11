@@ -38,6 +38,7 @@ show_help() {
     echo -e "  ${NEONGREEN}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${NEONGREEN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
     echo -e "  ${NEONGREEN}-C|--clean${NC}        Wipe build and output"
+    echo -e "  ${NEONGREEN}--list-archs${NC}      Print all available target architectures"
     echo -e "  ${NEONGREEN}-h|--help${NC}         Show this help"
     echo ""
     echo -e "${ORANGE}Example:${NC} $0 --arch \"x86_64 aarch64\" --resume --gcc"
@@ -186,6 +187,7 @@ build_arch() {
         "$strip" "$out_file"
     fi
 
+    verify_binary_arch "$out_file" "$triple"
     local final_size; final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}mold-$arch${NC} (${JUNEBUD}$final_size${NC})"
 }
