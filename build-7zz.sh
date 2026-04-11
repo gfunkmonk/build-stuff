@@ -8,13 +8,13 @@ REPO_URL="https://github.com/ip7z/7zip.git"
 REPO_BRANCH="main"
 #REPO_URL="https://github.com/mcmilk/7-Zip-zstd"
 #REPO_BRANCH="master"
-DL_COLOR="${GOLDENROD}"
-DL_TC_1="${OCHRE}"
+DL_COLOR="${LIME}"
+DL_TC_1="${LAVENDER}"
 DL_TC_2="${NAVAJO}"
 DL_TC_3="${CANARY}"
 EX_TC_1="${OCHRE}"
 EX_TC_2="${NAVAJO}"
-EX_TC_3="${LEMON}"
+EX_TC_3="${LAVENDER}"
 FINAL_C="${GOLDENROD}"
 CLEAN_C="${CRIMSON}"
 GIT_C="${OCHRE}"
@@ -81,7 +81,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${OCHRE}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} ${LEMON}[${NAVAJO}$triple${LEMON}]${NC} ${OCHRE}using ${GOLDENROD}$COMPILER_TYPE${NC}"
+    echo -e "${PEACH}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} ${OCHRE}[${NAVAJO}$triple${OCHRE}]${NC} ${LAVENDER}using ${LIME}$COMPILER_TYPE${NC}"
 
     mkdir -p "$TOOLCHAIN_DIR"
 
@@ -90,7 +90,7 @@ build_arch() {
     download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
-    echo -e "${TAWNY}🛡️  Verifying Integrity...${NC}"
+    echo -e "${NEONRED}🛡️  Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction
@@ -130,7 +130,7 @@ build_arch() {
     # makefile redirected stderr only); the bar still shows spinner progress.
     [[ "$total" -lt 1 ]] && total=100
 
-    echo -e "${OCHRE}==>${NC} ${GOLDENROD}Building 7zz (Jobs: $JOBS)...${NC}"
+    echo -e "${OCHRE}==>${NC} ${LIGHTSLATE}Building 7zz (Jobs: $JOBS)...${NC}"
     make -f makefile.gcc -j"$JOBS" \
         CC="$cc" \
         CXX="$cxx" \
@@ -142,7 +142,7 @@ build_arch() {
         > "$log_file" 2>&1 &
     # Use make-files mode to count produced .o files; this is independent of
     # log line format and works reliably with parallel make (-j).
-    track_progress $! "$log_file" "make-files" "$total" "${GOLDENROD}" "$bundle_dir/_o:*.o" || {
+    track_progress $! "$log_file" "make-files" "$total" "${KHAKI}" "$bundle_dir/_o:*.o" || {
         echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"; return 1;
     }
 
@@ -157,7 +157,7 @@ build_arch() {
     # 7. Finalize
     cp "$bin_found" "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${OCHRE}==>${NC} ${TAWNY}Stripping symbols...${NC}"
+        echo -e "${OCHRE}==>${NC} ${LEMON}Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
 
