@@ -4,19 +4,19 @@
 source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
-REPO_URL="https://github.com/jqlang/jq.git"
+REPO_URL="https://github.com/curl/curl.git"
 REPO_BRANCH="master"
-DL_COLOR="${LAGOON}"
-DL_TC_1="${HIGHLIGHTER}"
-DL_TC_2="${NEONBLUE}"
-DL_TC_3="${ORANGE}"
-EX_TC_1="${HIGHLIGHTER}"
-EX_TC_2="${NEONBLUE}"
-EX_TC_3="${TOMATO}"
-FINAL_C="${JUNEBUD}"
-CLEAN_C="${TOMATO}"
-GIT_C="${HOTPINK}"
-GIT_C2="${CYAN}"
+DL_COLOR="${CANARY}"
+DL_TC_1="${CARIBBEAN}"
+DL_TC_2="${NEONPURPLE}"
+DL_TC_3="${PEACH}"
+EX_TC_1="${CARIBBEAN}"
+EX_TC_2="${NEONPURPLE}"
+EX_TC_3="${LEMON}"
+FINAL_C="${CANARY}"
+CLEAN_C="${TAWNY}"
+GIT_C="${CARIBBEAN}"
+GIT_C2="${LEMON}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
 declare -A ARCH_INFO=(
@@ -29,18 +29,19 @@ declare -A ARCH_INFO=(
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
 show_help() {
-    echo -e "${HOTPINK}Usage:${NC} $0 [OPTIONS]"
+    echo -e "${CANARY}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${HELIOTROPE}--gcc${NC}             Use GCC toolchains"
-    echo -e "  ${HELIOTROPE}--clang${NC}           Use Clang toolchains (default)"
-    echo -e "  ${HELIOTROPE}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
-    echo -e "  ${HELIOTROPE}-r|--resume${NC}       Skip architectures already found in output/"
-    echo -e "  ${HELIOTROPE}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
-    echo -e "  ${HELIOTROPE}-C|--clean${NC}        Wipe build and output"
-    echo -e "  ${HELIOTROPE}--list-archs${NC}      Print all available target architectures"
-    echo -e "  ${HELIOTROPE}-h|--help${NC}         Show this help"
+    echo -e "  ${CARIBBEAN}--gcc${NC}             Use GCC toolchains"
+    echo -e "  ${CARIBBEAN}--clang${NC}           Use Clang toolchains (default)"
+    echo -e "  ${CARIBBEAN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
+    echo -e "  ${CARIBBEAN}-r|--resume${NC}       Skip architectures already found in output/"
+    echo -e "  ${CARIBBEAN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
+    echo -e "  ${CARIBBEAN}-C|--clean${NC}        Wipe build and output"
+    echo -e "  ${CARIBBEAN}--list-archs${NC}      Print all available target architectures"
+    echo -e "  ${CARIBBEAN}-h|--help${NC}         Show this help"
     echo ""
+    echo -e "${PEACH}Example:${NC} $0 --arch \"x86_64 aarch64\" --resume --gcc"
     exit 0
 }
 
@@ -55,14 +56,11 @@ while [[ $# -gt 0 ]]; do
         *) echo -e "${NEONRED}Unknown option: $1${NC}"; show_help ;;
     esac
 done
-
 DEFAULT_ARCHS="x86_64 i686 aarch64 armv7 armhf"
 ARCHS="${USER_ARCHS:-$DEFAULT_ARCHS}"
-
 setup_toolchain_dir
 
 # ── Build Logic ───────────────────────────────────────────────────────────────
-
 build_arch() {
     local arch="$1"
     local arch_key="$1"
@@ -70,96 +68,97 @@ build_arch() {
     IFS=: read -r triple tarball <<<"$info"
     local out_file="$OUTPUT_DIR/$NAME-$arch_key"
     local log_file="$ROOT_DIR/build-$arch_key.log"
-
-    echo -e "${NEONBLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
+    echo -e "${PEACH}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     if [[ "${RESUME_MODE:-false}" == true && -f "$out_file" ]]; then
         echo -e "${MINT}⏭️  Skipping $arch_key: Binary already exists (Resume Mode)${NC}"
         return
     fi
-
-    echo -e "${MAUVE}🏗️  Targeting:${NC} ${SKY}$arch${NC} ${LEMON}[${TOMATO}$triple${LEMON}] ${MAUVE}using ${ORANGE}$COMPILER_TYPE${NC}"
-
+    echo -e "${CARIBBEAN}🏗️  Targeting:${NC} ${CANARY}$arch${NC} ${LEMON}[${PEACH}$triple${LEMON}]${NC} ${CARIBBEAN}using ${NEONPURPLE}$COMPILER_TYPE${NC}"
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
-
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     download_toolchain "$tarpath" "$tarball" || return 1
-
     # 2. Hash Verification
-    echo -e "${TAWNY}🛡️  Verifying Integrity...${NC}"
+    echo -e "${GOLDENROD}🛡️  Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
-    
     # 3. Extraction Check
     local extract_path="$TOOLCHAIN_DIR/$triple"
     extract_toolchain "$tarpath" "$triple" || return 1
-
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
     local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
-    # GCC uses g++, Clang uses clang++
-    local cxx_name="clang++"
-    [[ "$COMPILER_TYPE" == "gcc" ]] && cxx_name="g++"
-    local cxx="$bin_dir/${triple}-$cxx_name"
     local strip="$bin_dir/${triple}-strip"
 
-    # 4. Configure (Autotools style)
-    #echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running Autogen...${NC}"
+    # Specific fix for i686/32-bit targets
+    local ARCH_FLAGS=""
+    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32"
+
+    cd "$ROOT_DIR"
+    if [[ ! -d "wolfssl/.git" ]]; then
+    git clone https://github.com/wolfSSL/wolfssl --depth=1
+    else
+    git -C wolfssl/ pull origin
+    fi
+    mkdir -p wolfssl-libs
+    cd wolfssl/
+    ./autogen.sh
+    CC="$cc -static" ./configure \
+        --host="$triple" \
+        --disable-shared \
+        --enable-static \
+        --prefix=${ROOT_DIR}/wolfssl-libs \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
+        LDFLAGS="-static -Wl,--gc-sections"
+    make -j"$JOBS" V=1 && make install
+    # 5. Configure (Autotools)
     cd "$SOURCE_DIR"
-    
     # Ensure fresh start
     make distclean >/dev/null 2>&1 || true
-
-    # JQ requires oniguruma sub-config
-    #autoreconf -if > "$log_file" 2>&1
-
-    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running Configure...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running Autoreconf...${NC}"
+    autoreconf -fi > "$log_file" 2>&1 || {
+        echo -e "${NEONRED}Autoreconf FAILED. Check $log_file${NC}"; return 1;
+    }
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
         --disable-docs \
-        --disable-valgrind \
-        --with-oniguruma=builtin \
-        CFLAGS="${CFLAGS}" \
-        LDFLAGS="-static" > "$log_file" 2>&1 || {
+        --disable-manual \
+        --without-libpsl \
+        --disable-ldap \
+        --enable-ipv6 \
+        --enable-unix-sockets \
+        --with-wolfssl=$ROOT_DIR/wolfssl-libs/ \
+        --without-libssh2 \
+        --with-zlib \
+        --without-brotli \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -flto=auto -ffat-lto-objects -ffunction-sections -fdata-sections -fno-stack-protector" \
+        LDFLAGS="-static -Wl,--gc-sections" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
-
-    # Pre-count expected compilation units for accurate per-phase progress tracking
-    local total_onig total_jq
-    total_onig=$(find "$SOURCE_DIR/vendor/oniguruma/src" -name "*.c" -type f 2>/dev/null | wc -l)
-    total_jq=$(find "$SOURCE_DIR/src" -name "*.c" -type f 2>/dev/null | wc -l)
-    [[ "$total_onig" -lt 1 ]] && total_onig=60
-    [[ "$total_jq" -lt 1 ]] && total_jq=20
-
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
-    # Oniguruma phase
-    make -j"$JOBS" -C vendor/oniguruma >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" "$total_onig" "${HELIOTROPE}" "$SOURCE_DIR/vendor/oniguruma/src:*.lo"
-
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
-    # JQ phase
-    make -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1 &
-    track_progress $! "$log_file" "make-files" "$total_jq" "${HELIOTROPE}" "$SOURCE_DIR/src:*.lo"
-
+    # Pre-count expected compilation units for accurate progress tracking
+    local total_curl
+    total_curl=$(find "$SOURCE_DIR/lib" "$SOURCE_DIR/src" -name "*.c" -type f 2>/dev/null | wc -l)
+    [[ "$total_curl" -lt 1 ]] && total_curl=100
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building curl (Jobs: $JOBS)...${NC}"
+    make -j"$JOBS" V=1 LDFLAGS="-static -all-static -Wl,--gc-sections" >> "$log_file" 2>&1 &
+    track_progress $! "$log_file" "make-files" "$total_curl" "${NEONBLUE}" "$SOURCE_DIR/lib:*.lo"
     # Finalize
-    cp jq "$out_file"
+    cp "$SOURCE_DIR/src/curl" "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${HIGHLIGHTER}==>${NC} ${GOLDENROD}Stripping symbols...${NC}"
+        echo -e "${CARIBBEAN}==>${NC} ${TAWNY}Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
-
     verify_binary_arch "$out_file" "$triple"
-    local final_size=$(du -sh "$out_file" | awk '{print $1}')
-    echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}jq-$arch${NC} (${PEACH}$final_size${NC})"
+    local final_size
+    final_size=$(du -sh "$out_file" | awk '{print $1}')
+    echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}curl-$arch${NC} (${CANARY}$final_size${NC})"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-# (Flags: --gcc, --clang, --arch, --resume, --jobs handled here just like mold script)
-# ... [Insert standard flag parsing block from mold script here] ...
-
+echo -e "${CANARY}Starting curl cross-compilation suite...${NC}"
 mkdir -p "$ROOT_DIR" "$OUTPUT_DIR"
 
 # Clone Source once
