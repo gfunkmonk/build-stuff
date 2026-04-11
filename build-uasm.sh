@@ -107,16 +107,16 @@ build_arch() {
     cp -r "$SOURCE_DIR/." "$build_work_dir/"
 
     # 6. Compile with Interactive Progress Bar & Logging
-    local log_file="$(pwd)/${NAME}-build/build-${arch_key}.log"
-    mkdir -p "$ROOT_DIR/uasm-build"
+    local log_file="$ROOT_DIR/build-${arch_key}.log"
+    mkdir -p "$ROOT_DIR"
 
     # This strips the ROOT_DIR from the path for a cleaner display
-    local relative_log="${log_file#$(pwd)/}"
+    local relative_log="${log_file#"$(pwd)/"}"
 
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
 
-    local total_files=$(find "$build_work_dir" -name "*.c" | wc -l)
+    local total_files; total_files=$(find "$build_work_dir" -name "*.c" | wc -l)
     local current_file=0
     set +e
     make -C "$build_work_dir" -f "$makefile" CC="$cc_bin -static" STRIP="$strip_bin" -j"$JOBS" 2>&1 | tee "$log_file" | \
@@ -127,7 +127,7 @@ build_arch() {
             [[ "$total_files" -gt 0 ]] && percent=$(( current_file * 105 / total_files ))
             [[ $percent -gt 100 ]] && percent=100
             local num_hashes=$(( percent / 2 ))
-            local hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
+            local hashes; hashes=$(printf "%${num_hashes}s" | tr ' ' '#')
             printf "\r${CYAN}[%-50s] %d%% (${CANARY}%d/%d${NC})" \
                 "$hashes" "$percent" "$current_file" "$total_files"
         fi
@@ -158,7 +158,7 @@ build_arch() {
         "$strip_bin" "$out_file"
     fi
 
-    local final_size=$(du -sh "$out_file" | awk '{print $1}')
+    local final_size; final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "${CHARTREUSE}✅ Successfully built: ${BWHITE}uasm-$arch_key${NC} (${CANARY}$final_size${NC})"
 }
 

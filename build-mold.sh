@@ -131,7 +131,7 @@ build_arch() {
     echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
 
     local build_failed
-    set +e +o pipefail
+    set +eo pipefail
 
     if command -v ninja &>/dev/null; then
         ninja -v -j"$JOBS" -C "$bdir" >"$log_file" 2>&1 &
@@ -162,6 +162,7 @@ build_arch() {
     fi
 
     printf "\r%60s\r" ""
+    set -eo pipefail
     if [[ $build_failed -ne 0 ]]; then
         echo -e "${NEONRED}Build FAILED:${NC}"
         grep -E 'error:' "$log_file" | tail -10 | \
@@ -172,7 +173,9 @@ build_arch() {
     echo -e "${NEONGREEN}  [ 100% ] Build complete.${NC}"
 
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
-    cmake --build "$bdir" --target install >> "$log_file" 2>&1
+    cmake --build "$bdir" --target install >> "$log_file" 2>&1 || {
+        echo -e "${NEONRED}Install FAILED. Check $log_file${NC}"; return 1;
+    }
 
     # 6. Finalize Binary
     cp "$idir/bin/mold" "$out_file"
@@ -181,7 +184,7 @@ build_arch() {
         "$strip" "$out_file"
     fi
 
-    local final_size=$(du -sh "$out_file" | awk '{print $1}')
+    local final_size; final_size=$(du -sh "$out_file" | awk '{print $1}')
     echo -e "${NEONGREEN}✅ Successfully built: ${BWHITE}mold-$arch${NC} (${JUNEBUD}$final_size${NC})"
 }
 
@@ -195,10 +198,8 @@ git_clone
 
 # Determine build system
 CMAKE_GENERATOR="Unix Makefiles"
-BUILD_CMD="make -j$JOBS"
 if command -v ninja &>/dev/null; then
     CMAKE_GENERATOR="Ninja"
-    BUILD_CMD="ninja -j$JOBS"
 fi
 
 # Loop through architectures

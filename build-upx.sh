@@ -48,7 +48,13 @@ declare -A ARCH_INFO=(
 
 list_output() {
     echo -e "${HELIOTROPE}📂 Currently Built Binaries:${NC}"
-    ls -lh "$OUTPUT_DIR" | grep 'upx-' || echo -e "${SLATE}No artifacts found.${NC}"
+    local found=false
+    for bin in "$OUTPUT_DIR"/upx-*; do
+        [[ -f "$bin" ]] || continue
+        found=true
+        ls -lh "$bin"
+    done
+    [[ "$found" == false ]] && echo -e "${SLATE}No artifacts found.${NC}"
 }
 
 verify_static() {
@@ -189,7 +195,7 @@ build_arch() {
     fi
 
     # 5. Finalize
-    local bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
+    local bin_found; bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
     if [[ -z "$bin_found" ]]; then
         echo -e "${TOMATO}Error: Binary not found after successful build!${NC}"
         return 1
@@ -203,7 +209,7 @@ build_arch() {
 # ── Usage ─────────────────────────────────────────────────────────────────────
 show_help() {
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "  ${BWHITE}UPX CROSS-BUILD ENGINE${NC} [${AQUA}${UPX_BRANCH}${NC}]"
+    echo -e "  ${BWHITE}UPX CROSS-BUILD ENGINE${NC} [${AQUA}${REPO_BRANCH}${NC}]"
     echo -e "${HELIOTROPE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BWHITE}USAGE:${NC}"
     echo -e "  $0 [OPTIONS] [COMMANDS]"
@@ -245,7 +251,7 @@ while [[ $# -gt 0 ]]; do
     fi
     case "$1" in
         -h|--help) show_help ;;
-        *) shift ;;
+        *) echo -e "${TOMATO}Unknown option: $1${NC}"; show_help ;;
     esac
 done
 

@@ -86,7 +86,7 @@ declare -A HASHES_CLANG=(
   [x86_64-unknown-linux-musl.tar.xz]="62f74a4c082249f736662e35c847f73d9ae1134b2a76bfcdb33829d06fa70c92"
 )
 
-NAME=$(echo $0 | cut -d'-' -f2 | cut -d'.' -f1)
+NAME=$(basename "$0" | cut -d'-' -f2 | cut -d'.' -f1)
 ROOT_DIR="$(pwd)/${NAME}-build"
 SOURCE_DIR="$ROOT_DIR/${NAME}-src"
 BUILD_BASE="$ROOT_DIR/build"
@@ -174,7 +174,7 @@ download_toolchain() {
         p=$(echo "$p" | tr -dc '0-9.' | cut -d. -f1)
         : ${p:=0}
         local scaled=$(( p / 10 ))
-        local bar=$(printf "%${scaled}s" | tr ' ' '=')
+        local bar; bar=$(printf "%${scaled}s" | tr ' ' '=')
         printf "\r${DL_COLOR}[ %3d%% ] [ %-10s> ]${NC}" "$p" "$bar"
     done
     if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
