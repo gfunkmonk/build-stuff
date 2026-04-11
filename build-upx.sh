@@ -21,7 +21,7 @@ GIT_C2="${NC}"
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
 declare_arch_info() {
   if [[ "$COMPILER_TYPE" == "gcc" ]]; then
-    declare -A ARCH_INFO=(
+    declare -gA ARCH_INFO=(
       [i386]="i586-unknown-linux-musl:i586"
       [i486]="i686-unknown-linux-musl:i686"
       [i586]="i586-unknown-linux-musl:i586"
@@ -55,7 +55,7 @@ declare_arch_info() {
       [s390x]="s390x-ibm-linux-musl:s390x"
       [sh4]="sh4-multilib-linux-musl:sh4")
   else
-    declare -A ARCH_INFO=(
+    declare -gA ARCH_INFO=(
       [i586]="i586-unknown-linux-musl:i586"
       [i686]="i686-unknown-linux-musl:i686"
       [x86_64]="x86_64-unknown-linux-musl:x86_64"
