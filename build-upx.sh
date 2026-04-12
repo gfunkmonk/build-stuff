@@ -19,39 +19,74 @@ GIT_C="${SLATE}"
 GIT_C2="${NC}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
-declare -gA ARCH_INFO=(
-  [i386]="i586-unknown-linux-musl:i586"
-  [i486]="i686-unknown-linux-musl:i686"
-  [i586]="i586-unknown-linux-musl:i586"
-  [i686]="i686-unknown-linux-musl:i686"
-  [x86_64]="x86_64-unknown-linux-musl:x86_64"
-  [arm]="arm-unknown-linux-musleabi:arm"
-  [armhf]="arm-unknown-linux-musleabihf:arm"
-  [armv5]="armv5-unknown-linux-musleabi:armv5"
-  [armv6]="armv6-unknown-linux-musleabi:arm"
-  [armv6hf]="armv6-unknown-linux-musleabihf:arm"
-  [armv7]="armv7-unknown-linux-musleabi:armv7"
-  [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-  [aarch64]="aarch64-unknown-linux-musl:aarch64"
-  [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-  [m68k]="m68k-unknown-linux-musl:m68k"
-  [mips]="mips-unknown-linux-musl:mips"
-  [mips-sf]="mips-unknown-linux-muslsf:mips"
-  [mips64]="mips64-unknown-linux-musl:mips64"
-  [mips64el]="mips64el-unknown-linux-musl:mips64el"
-  [mipsel]="mipsel-unknown-linux-musl:mipsel"
-  [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
-  [or1k]="or1k-unknown-linux-musl:or1k"
-  [powerpc]="powerpc-unknown-linux-musl:powerpc"
-  [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
-  [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
-  [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
-  [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
-  [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
-  [riscv32]="riscv32-unknown-linux-musl:riscv32"
-  [riscv64]="riscv64-unknown-linux-musl:riscv64"
-  [s390x]="s390x-ibm-linux-musl:s390x"
-  [sh4]="sh4-multilib-linux-musl:sh4")
+declare_arch_info() {
+  if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+    declare -gA ARCH_INFO=(
+      [arm]="arm-unknown-linux-musleabi:arm"
+      [armhf]="arm-unknown-linux-musleabihf:arm"
+      [armv5]="armv5-unknown-linux-musleabi:armv5"
+      [armv6]="armv6-unknown-linux-musleabi:arm"
+      [armv6hf]="armv6-unknown-linux-musleabihf:arm"
+      [armv7]="armv7-unknown-linux-musleabi:armv7"
+      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [i386]="i386-unknown-linux-musl:i386"
+      [i486]="i486-unknown-linux-musl:i486"
+      [i586]="i586-unknown-linux-musl:i586"
+      [i686]="i686-unknown-linux-musl:i686"
+      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+      [m68k]="m68k-unknown-linux-musl:m68k"
+      [mips]="mips-unknown-linux-musl:mips"
+      [mips-sf]="mips-unknown-linux-muslsf:mips"
+      [mips64]="mips64-unknown-linux-musl:mips64"
+      [mips64el]="mips64el-unknown-linux-musl:mips64el"
+      [mipsel]="mipsel-unknown-linux-musl:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+      [or1k]="or1k-unknown-linux-musl:or1k"
+      [powerpc]="powerpc-unknown-linux-musl:powerpc"
+      [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+      [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
+      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+      [riscv32]="riscv32-unknown-linux-musl:riscv32"
+      [riscv64]="riscv64-unknown-linux-musl:riscv64"
+      [s390x]="s390x-ibm-linux-musl:s390x"
+      [sh4]="sh4-multilib-linux-musl:sh4"
+      [x86_64]="x86_64-unknown-linux-musl:x86_64")
+  else
+    declare -gA ARCH_INFO=(
+      [arm]="arm-unknown-linux-musleabi:arm"
+      [armhf]="arm-unknown-linux-musleabihf:arm"
+      [armv5]="armv5-unknown-linux-musleabi:armv5"
+      [armv6]="armv6-unknown-linux-musleabi:armv6"
+      [armv6hf]="armv6-unknown-linux-musleabihf:armv6"
+      [armv7]="armv7-unknown-linux-musleabi:armv7"
+      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [i386]="i386-unknown-linux-musl:i386"
+      [i486]="i486-unknown-linux-musl:i486"
+      [i586]="i586-unknown-linux-musl:i586"
+      [i686]="i686-unknown-linux-musl:i686"
+      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+      [mips]="mips-unknown-linux-musl:mips"
+      [mips-sf]="mips-unknown-linux-muslsf:mips"
+      [mips64]="mips64-unknown-linux-musl:mips64"
+      [mips64el]="mips64el-unknown-linux-musl:mips64el"
+      [mipsel]="mipsel-unknown-linux-musl:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+      [powerpc]="powerpc-unknown-linux-musl:powerpc"
+      [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+      [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
+      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+      [riscv32]="riscv32-unknown-linux-musl:riscv32"
+      [riscv64]="riscv64-unknown-linux-musl:riscv64"
+      [s390x]="s390x-ibm-linux-musl:s390x"
+      [x86_64]="x86_64-unknown-linux-musl:x86_64")
+  fi
+}
 
 # ── Helper Subcommands ────────────────────────────────────────────────────────
 
@@ -171,6 +206,33 @@ build_arch() {
       sed -i 's/static_assert(alignof/ \/\/ static_assert(alignof/g' "$SOURCE_DIR/src/util/cxxlib.h"
     fi
 
+    # Per-arch compiler flag adjustments
+    local arch_cflags="$CFLAGS"
+    local arch_cxxflags="$CXXFLAGS"
+    # powerpc64 ELFv1 (big-endian) + clang/lld: the compiler emits calls to
+    # _savefpr_*/_restfpr_* GCC helper routines that lld does not provide.
+    # -mno-save-fpr disables those out-of-line helpers and emits inline
+    # save/restore sequences instead, resolving the undefined-symbol error.
+    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
+        arch_cflags="$CFLAGS -mno-save-fpr"
+        arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+    fi
+
+    # 3.6 LoongArch64 LLD debug-relocation workaround
+    # The libstdc++.a in the clang sysroot carries .debug_info sections that
+    # use R_LARCH_ADD6 (relocation type 9), a psABI v2 relocation that the
+    # bundled ld.lld does not recognise.  --strip-debug tells the linker to
+    # discard all .debug_* input sections, so those relocations are never
+    # evaluated and the configure/try_compile steps succeed.
+    local extra_linker_flags=""
+    if [[ "$arch_key" == "loongarch64" ]]; then
+      extra_linker_flags="-Wl,--strip-debug"
+    fi
+
+    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
+      extra_linker_flags="-lgcc"
+    fi
+
     # 4. Compile with Error Logging
     echo -n -e "${SLATE}==>${NC} Configuring CMake... "
 
@@ -180,9 +242,9 @@ build_arch() {
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
         -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_TYPE}" \
         -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
-        -DCMAKE_C_FLAGS="${CFLAGS}" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" \
+        -DCMAKE_C_FLAGS="${arch_cflags}" \
+        -DCMAKE_CXX_FLAGS="${arch_cxxflags}" \
+        -DCMAKE_EXE_LINKER_FLAGS="-static ${extra_linker_flags}" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
         > "$log_file" 2>&1; then
@@ -256,6 +318,8 @@ for _arg in "$@"; do
         --clang) set_compiler clang ;;
     esac
 done
+
+declare_arch_info
 
 # Flag Parsing
 while [[ $# -gt 0 ]]; do
