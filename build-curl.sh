@@ -73,7 +73,7 @@ build_arch() {
         echo -e "${MINT}⏭️  Skipping $arch_key: Binary already exists (Resume Mode)${NC}"
         return
     fi
-    echo -e "${CARIBBEAN}↓📂 Targeting:${NC} ${CANARY}$arch${NC} ${LEMON}[${PEACH}$triple${LEMON}]${NC} ${CARIBBEAN}using ${NEONPURPLE}$COMPILER_TYPE${NC}"
+    echo -e "${CARIBBEAN}↓📂⬇️Targeting:${NC} ${CANARY}$arch${NC} ${LEMON}[${PEACH}$triple${LEMON}]${NC} ${CARIBBEAN}using ${NEONPURPLE}$COMPILER_TYPE${NC}"
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
     # 1. Download Toolchain
@@ -105,7 +105,7 @@ build_arch() {
     local wolfssl_build_log="$ROOT_DIR/wolfssl-build-$arch_key.log"
     cd "$ROOT_DIR"
     if [[ ! -d "wolfssl/.git" ]]; then
-        echo -e "${GIT_C}==>${GIT_C2} Cloning wolfssl source...${NC}"
+        echo -e "${GIT_C}==>${GIT_C2}🐑➡️🐑 Cloning wolfssl source...${NC}"
         git clone https://github.com/wolfSSL/wolfssl --depth=1 > /dev/null 2>&1
     else
         echo -e "${CORAL}✨ Source code for wolfssl present.${NC}"
@@ -116,13 +116,13 @@ build_arch() {
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
     rm -f config.cache
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh (wolfSSL)...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}⏳ Running autogen.sh (wolfSSL)...${NC}"
     ./autogen.sh > "$wolfssl_log" 2>&1 || {
-        echo -e "${NEONRED}wolfSSL autogen.sh FAILED. Check $wolfssl_log${NC}"; return 1;
+        echo -e "${NEONRED}wolfSSL autogen.sh 😥 FAILED. Check $wolfssl_log${NC}"; return 1;
     }
     local wolfssl_32bit=""
     [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit --enable-fastmath --disable-asm"
-    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure (wolfSSL)...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}⚙️ Running Configure (wolfSSL)...${NC}"
     CC="$cc" ./configure \
         --host="$triple" \
         --disable-shared \
@@ -132,7 +132,7 @@ build_arch() {
         $wolfssl_32bit \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector ${clang_only_flags}" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
-            echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
+            echo -e "${NEONRED}😞 wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
 
     # Dry-run on the now-configured tree for an accurate step count.
@@ -141,18 +141,18 @@ build_arch() {
     total_wolfssl=$(make -n V=1 2>/dev/null | grep -c " -c -o " || true)
     [[ "$total_wolfssl" -lt 1 ]] && total_wolfssl=50
 
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building wolfSSL (Jobs: $JOBS)...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}👷‍ Building wolfSSL (Jobs: $JOBS)...${NC}"
     # Write make output to a fresh log so grep-count only sees make lines.
     make -j"$JOBS" V=1 LDFLAGS="-static -all-static -Wl,--gc-sections" > "$wolfssl_build_log" 2>&1 &
     track_progress $! "$wolfssl_build_log" "grep-count" "$total_wolfssl" "${GOLDENROD}" " -c -o " || {
         cat "$wolfssl_build_log" >> "$wolfssl_log"
-        echo -e "${NEONRED}wolfSSL build FAILED. Check $wolfssl_log${NC}"; return 1;
+        echo -e "${NEONRED}wolfSSL build FAILED.😞 Check $wolfssl_log${NC}"; return 1;
     }
     # Merge build log into the main wolfssl log for a complete audit trail.
     cat "$wolfssl_build_log" >> "$wolfssl_log"
 
     make install LDFLAGS="-static -all-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
-        echo -e "${NEONRED}wolfSSL Install FAILED. Check $wolfssl_log${NC}"; return 1;
+        echo -e "${NEONRED}😞 wolfSSL Install FAILED. Check $wolfssl_log${NC}"; return 1;
     }
 
     # 5. Configure (Autotools)
@@ -160,12 +160,12 @@ build_arch() {
     local wolf_libdir="$wolfssl_prefix/lib"
     [[ -d "$wolfssl_prefix/lib64" ]] && wolf_libdir="$wolfssl_prefix/lib64"
     make distclean >/dev/null 2>&1 || true
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running Autoreconf...(curl)${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}⏲️ Running Autoreconf...(curl)${NC}"
     autoreconf -fi > "$log_file" 2>&1 || {
         echo -e "${NEONRED}Autoreconf FAILED. Check $log_file${NC}"; return 1;
     }
 
-    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...(curl)${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${LAGOON}🏃‍ Running Configure...(curl)${NC}"
     CC="$cc" ./configure \
         --host="$triple" \
         --disable-shared \
@@ -192,7 +192,7 @@ build_arch() {
 
     # Separate build log so grep-count only sees make output, not configure output.
     local curl_build_log="$ROOT_DIR/curl-build-$arch_key.log"
-    echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building curl (Jobs: $JOBS)...${NC}"
+    echo -e "${CARIBBEAN}==>${NC} ${CANARY}🏗️ Building curl (Jobs: $JOBS)...${NC}"
     make -j"$JOBS" V=1 LDFLAGS="-static -all-static -L${wolf_libdir} -Wl,--gc-sections" \
         > "$curl_build_log" 2>&1 &
     track_progress $! "$curl_build_log" "grep-count" "$total_curl" "${NEONBLUE}" " -c -o " || {
@@ -204,7 +204,7 @@ build_arch() {
     # Finalize
     cp "$SOURCE_DIR/src/curl" "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${CARIBBEAN}==>${NC} ${TAWNY}Stripping symbols...${NC}"
+        echo -e "${CARIBBEAN}==>${NC} ${TAWNY}🩲 Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
     verify_binary_arch "$out_file" "$triple"

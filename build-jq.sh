@@ -106,7 +106,7 @@ build_arch() {
     local strip="$bin_dir/${triple}-strip"
 
     # 4. Configure (Autotools style)
-    echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}Running autoreconf...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${PEACH}🤸 Running autoreconf...${NC}"
     cd "$SOURCE_DIR"
     
     # Ensure fresh start
@@ -116,7 +116,7 @@ build_arch() {
     local oniguruma_build_log="$ROOT_DIR/oniguruma-build-$arch_key.log"
     autoreconf -if > "$log_file" 2>&1
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running configure...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${HOTPINK}Running configure...🛠${NC}"
     CC="$cc -static" ./configure \
         --host="$triple" \
         --disable-shared \
@@ -126,7 +126,7 @@ build_arch() {
         --with-oniguruma=builtin \
         CFLAGS="${CFLAGS}" \
         LDFLAGS="-static" >> "$log_file" 2>&1 || {
-            echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
+            echo -e "${NEONRED}🚫 Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
     # Pre-count expected compilation units for accurate per-phase progress tracking
@@ -136,12 +136,12 @@ build_arch() {
     [[ "$total_onig" -lt 1 ]] && total_onig=60
     [[ "$total_jq" -lt 1 ]] && total_jq=20
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building bundled oniguruma (Jobs: $JOBS)...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}🕦 Building bundled oniguruma (Jobs: $JOBS)...${NC}"
     # Oniguruma phase
     make -j"$JOBS" -C vendor/oniguruma >> "$oniguruma_build_log" 2>&1 &
     track_progress $! "$oniguruma_build_log" "make-files" "$total_onig" "${HELIOTROPE}" "$SOURCE_DIR/vendor/oniguruma/src:*.lo"
 
-    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}Building jq (Jobs: $JOBS)...${NC}"
+    echo -e "${HIGHLIGHTER}==>${NC} ${NEONBLUE}🕚 Building jq (Jobs: $JOBS)...${NC}"
     # JQ phase
     make -j"$JOBS" LDFLAGS="-static" >> "$log_file" 2>&1 &
     track_progress $! "$log_file" "make-files" "$total_jq" "${HELIOTROPE}" "$SOURCE_DIR/src:*.lo"
@@ -149,7 +149,7 @@ build_arch() {
     # Finalize
     cp jq "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${HIGHLIGHTER}==>${NC} ${GOLDENROD}Stripping symbols...${NC}"
+        echo -e "${HIGHLIGHTER}==>${NC} ${GOLDENROD}👿 Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
 

@@ -137,7 +137,7 @@ build_arch() {
     # makefile redirected stderr only); the bar still shows spinner progress.
     [[ "$total" -lt 1 ]] && total=100
 
-    echo -e "${OCHRE}==>${NC} ${LIGHTSLATE}Building 7zz (Jobs: $JOBS)...${NC}"
+    echo -e "${OCHRE}==>${NC} ${LIGHTSLATE}🚧 Building 7zz (Jobs: $JOBS)...${NC}"
     make -f makefile.gcc -j"$JOBS" \
         CC="$cc" \
         CXX="$cxx" \
@@ -150,21 +150,21 @@ build_arch() {
     # Use make-files mode to count produced .o files; this is independent of
     # log line format and works reliably with parallel make (-j).
     track_progress $! "$log_file" "make-files" "$total" "${KHAKI}" "$bundle_dir/_o:*.o" || {
-        echo -e "${NEONRED}Build FAILED. Check $log_file${NC}"; return 1;
+        echo -e "${NEONRED}😩 Build FAILED. Check $log_file${NC}"; return 1;
     }
 
     # 6. Locate binary (output dir may vary by 7-zip version)
     local bin_found
     bin_found=$(find "$bundle_dir" -name "7zz" -type f -executable 2>/dev/null | head -n1)
     if [[ -z "$bin_found" ]]; then
-        echo -e "${NEONRED}Error: 7zz binary not found after build!${NC}"
+        echo -e "${NEONRED}Error:🔬 7zz binary not found after build!${NC}"
         return 1
     fi
 
     # 7. Finalize
     cp "$bin_found" "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${OCHRE}==>${NC} ${LEMON}Stripping symbols...${NC}"
+        echo -e "${OCHRE}==>${NC} ${LEMON}🥓 Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
 

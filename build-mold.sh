@@ -111,7 +111,7 @@ build_arch() {
     local idir="$BUILD_BASE/$arch-install"
     mkdir -p "$bdir" "$idir" "$OUTPUT_DIR"
 
-    echo -e "${SKY}==>${NC} ${ORANGE}Configuring CMake...${NC}"
+    echo -e "${SKY}==>${NC} ${ORANGE}🎛 Configuring CMake...${NC}"
     # Force colors in the generated Makefile so progress strings are sent to the pipe
     cmake -S "$SOURCE_DIR" -B "$bdir" -G "${CMAKE_GENERATOR:-Unix Makefiles}" \
         -DCMAKE_BUILD_TYPE=Release \
@@ -128,10 +128,10 @@ build_arch() {
         -DCMAKE_C_FLAGS="${CFLAGS} -fPIC" \
         -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC$([[ "$COMPILER_TYPE" == "gcc" ]] && echo " -Wno-stringop-overflow")" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
-            echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
+            echo -e "${NEONRED}CMake configure FAILED❗ Check $log_file${NC}"; return 1;
         }
 
-    echo -e "${SKY}==>${NC} ${LAGOON}Building mold (Jobs: $JOBS)...${NC}"
+    echo -e "${SKY}==>${NC} ${LAGOON}☢ Building mold (Jobs: $JOBS)...${NC}"
 
     # Force ninja to output progress markers even when redirected
     # We use 'grep-count' as a backup because [x/y] can be inconsistent in logs
@@ -142,13 +142,13 @@ build_arch() {
 
     echo -e "${SKY}==>${NC} ${NEONPURPLE}Installing to temporary dir...${NC}"
     cmake --build "$bdir" --target install >> "$log_file" 2>&1 || {
-        echo -e "${NEONRED}Install FAILED. Check $log_file${NC}"; return 1;
+        echo -e "${NEONRED}Install FAILED❗Check $log_file${NC}"; return 1;
     }
 
     # 6. Finalize Binary
     cp "$idir/bin/mold" "$out_file"
     if [[ -x "$strip" ]]; then
-        echo -e "${SKY}==>${NC} ${PEACH}Stripping symbols...${NC}"
+        echo -e "${SKY}==>${NC} ${PEACH}👙 Stripping symbols...${NC}"
         "$strip" "$out_file"
     fi
 
