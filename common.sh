@@ -78,29 +78,38 @@ declare -A HASHES_GCC=(
 )
 
 declare -A HASHES_CLANG=(
-  [aarch64-unknown-linux-musl.tar.xz]="96dbc9a46f5ff6d833abb6f06c6abcb9e462bf702cee2083af8102860cab7681"
-  [arm-unknown-linux-musleabi.tar.xz]="6dfbdb9e6c1ba109b24722891ef8b3ecbaa890e0b28dd966b051ebbcea84d013"
-  [arm-unknown-linux-musleabihf.tar.xz]="29f678bfe932f362330557b3e0fd1e5e82d1b659938363776ef68af307b49234"
-  [armv7-unknown-linux-musleabi.tar.xz]="5d00568e70d53cf4392b41a1b6d956fb338a525e373d41b160a06fa84094c39a"
-  [armv7-unknown-linux-musleabihf.tar.xz]="507468dd7b4d732aadfb7324a36d4de3469144ded3f54d988a5148eeae5acf0a"
-  [i586-unknown-linux-musl.tar.xz]="0c2153190567ef7a979db55afda8734e04adbb72d1de20bd76e645e6abe41403"
-  [i686-unknown-linux-musl.tar.xz]="20a61e410b2f7d7b3fbd2f930b54b80c20fa4c10a93379e836c71b3c0dce6f0e"
-  [loongarch64-unknown-linux-musl.tar.xz]="5eb7b47a490f1c9cd90b92e013494fb693f72296acf40a9ae1572ff5fed7e124"
-  [m68k-unknown-linux-musl.tar.xz]="0b8fc5e33c3e397cd0ea2416c1b18d636a4552b80ccc965047394eb5e9779625"
-  [mips-unknown-linux-musl.tar.xz]="5ac85685ed44276c4c51a4a98d5ceb86c6fb5ea30d196fe76995e69207375c22"
-  [mips-unknown-linux-muslsf.tar.xz]="5d5a909756455cef2f51851099cc6b80112ad1b77e1d76a2e05f01c772a06526"
-  [mips64-unknown-linux-musl.tar.xz]="8ce17f3134117d256993fdce8f75c8c0efcefa6d651acb2ee2bd248a084772b9"
-  [mips64el-unknown-linux-musl.tar.xz]="1de4af4c7b7486aaa4fd05e28b00fddf8750d6b1c40248936b1a37905d9becd2"
-  [mipsel-unknown-linux-musl.tar.xz]="fe88363eadea1b4cac2079644a02b88420f152b54ed311e3bb764ab04e8920cf"
-  [mipsel-unknown-linux-muslsf.tar.xz]="4cf46e7caa3236fdf58679f42f9f9788a0a162d06881b3f6c2ba20ee09e2f6ed"
-  [powerpc-unknown-linux-musl.tar.xz]="cfd19b3cac857ef9d59df7cfe08c91227df396bd23a10bab082e1dbfbe5a5d13"
-  [powerpc64-unknown-linux-musl.tar.xz]="81534d0f733d680a9722fa14fa847d978dfc1149203e9bfbdbd359fde54310fc"
-  [powerpc64le-unknown-linux-musl.tar.xz]="5ad4fcc5f6e8f28c18cb4022ea927e8f7b35e6342b88f3cd8b274262e6a607b1"
-  [powerpcle-unknown-linux-musl.tar.xz]="944d873e070e0221ef734e938a5c767d4a65806e41e56e1a6392ca1614a7a1f4"
-  [riscv32-unknown-linux-musl.tar.xz]="b51ca7d45577550c0cb5a920a442e7021f10be2ee098f90a82b9e92b19d7b795"
-  [riscv64-unknown-linux-musl.tar.xz]="02ee3ad9f8d919d7103601615306ecf5fb8ce7000bc3da71cb88c45e54da302d"
-  [s390x-ibm-linux-musl.tar.xz]="0b01980860dc795a29e70b7d7b5108c69903e8288dc56fa89a12900f7855beff"
-  [x86_64-unknown-linux-musl.tar.xz]="10759d9dcb2524d95321848648940742ebd02015e0751c1662c7ca340d4f1964"
+  [aarch64-unknown-linux-musl.tar.xz]="d01e3c2d2be7c8361346540698d95deefe01afd1858b6e27a050f95b8c9423cb"
+  [arm-unknown-linux-musleabi.tar.xz]="06d858148d8a62c0311409fbc57d376758b560b6c2162b031bfb43f1cdb644c2"
+  [arm-unknown-linux-musleabihf.tar.xz]="0b47ad8400952036c552ad3e62c8e0c5e551921c5c047869c342ffc2f4e221d6"
+  [armv5-unknown-linux-musleabi.tar.xz]="28b9c69e195c7ab37f1a21a15782679dae4daf83fb8e4e7ad584e0255eec9a77"
+  [armv6-unknown-linux-musleabi.tar.xz]="50fbfafda19f7abaccd9621cdf9b3e5dcfd7c805b8151af28ad84a7259fbdbb7"
+  [armv6-unknown-linux-musleabihf.tar.xz]="116f5579b6856e667540fad0236eaebfe7be3c3a10b31445709b447634fc7f95"
+  [armv7-unknown-linux-musleabi.tar.xz]="a7d4b920f52cbe060952aee3dfe8e20a6e86267df285881940a1c74fcc1c3486"
+  [armv7-unknown-linux-musleabihf.tar.xz]="f0e5bb91326979d3107e636063126b19ffa2e6624321f07f71aadd0e16883b2b"
+  [i386-unknown-linux-musl.tar.xz]="3f1b573d71146b3e9f5e7f4e8ada68734f925c76b9fae79887dbfaa7d86fe7f4"
+  [i486-unknown-linux-musl.tar.xz]="368d54f7218e698c5ef0b7b4ff4cdfc36388ca4bb5fb93988588f1c9ea8685e0"
+  [i586-unknown-linux-musl.tar.xz]="3c086421af61aa083f3fb6fec1fba6253f447b0365de2fbdd7b8cc44a5d7d2fc"
+  [i686-unknown-linux-musl.tar.xz]="4af65ce50847d1a655e1e977fdcfb5fba2f499e4facc05c7ac33224da8d38c94"
+  [loongarch64-unknown-linux-musl.tar.xz]="bf052b508a25d8be15207666cb50a75f8daecd69507c999fc37c03d013a2dfd9"
+  [m68k-unknown-linux-musl.tar.xz]="8c4c1e22bee18c7efc1919ea289cefdfc73925eb5a48755da51d2d157675db12"
+  [mips-unknown-linux-musl.tar.xz]="709b512a2f3f6f55ca008e3fa22952966f5e35364f552bfe8970edb7c5f6411b"
+  [mips-unknown-linux-muslsf.tar.xz]="f88259c7d40f78d77842fa75d58464e3d34da3e8b633c6be2859942c1c6a6907"
+  [mips64-unknown-linux-musl.tar.xz]="53a59fdd610ea5906a258841bd867117e6c81af9ade04f7cda1527d665e3fb3c"
+  [mips64el-unknown-linux-musl.tar.xz]="2385a0be0ee9d3b3f6ea46083a3141de377546cb99c2b2dae736eb0a1a3026ca"
+  [mipsel-unknown-linux-musl.tar.xz]="15acd0fe3b38852530f240c6abc238837f6358d6efb40aafa5533c644735ae62"
+  [mipsel-unknown-linux-muslsf.tar.xz]="8fae58ebe42f4b12985ba5d3f0165073f0dba5343a2fb12a50c28f5bf71362b4"
+  [or1k-unknown-linux-musl.tar.xz]="13404705b13ea946dfff9cbc61d384b3c9334f7491cf252c42278e26edd009b3"
+  [powerpc-unknown-linux-musl.tar.xz]="b498b2393789a5f8b4a3f4fac8fea4e737bd48fd0cc29b5a20ec98f9e39ac383"
+  [powerpc-unknown-linux-muslsf.tar.xz]="970ad45fd476be86b373d1d1deb33dba43b98407361859a99a705a020a7eb9e0"
+  [powerpc64-unknown-linux-musl.tar.xz]="f879fca984b4e00c80f43e46d5f745c59da7e543c7440f03a472bb83096f1ee8"
+  [powerpc64le-unknown-linux-musl.tar.xz]="cf27b7f472bea5be07ca2e4e2703a8a4930a122b30a92da8302735ebc59173cb"
+  [powerpcle-unknown-linux-musl.tar.xz]="16c75fbd663cd6209392b0e17219e832843c669e25cb9c34b03b10f7606bffbc"
+  [powerpcle-unknown-linux-muslsf.tar.xz]="641ebed230d0c5c638b3f565f3a2daf16ae66ed7565d32104dcb2f3e7ca50899"
+  [riscv32-unknown-linux-musl.tar.xz]="f6ab9d268170104b46913b32ae0b46b53b7016764783ca67599cc66567d15e36"
+  [riscv64-unknown-linux-musl.tar.xz]="4ea585cae4e3c5814d4077662e48c43021bbb81d01d7131eabddf90744489ee6"
+  [s390x-ibm-linux-musl.tar.xz]="40a79c1f2a883dcb19ab38d943470e50dab7ac8c901ec8663fb7f6b6c234eb50"
+  [sh4-multilib-linux-musl.tar.xz]="6f875b42bbec0b04643dbc2d0b532d7e8246dc4432b47f637c9418c87212d3f6"
+  [x86_64-unknown-linux-musl.tar.xz]="05e652aa8ff513662413d3d15220153d334aba76285936aa5ddb84cb2a7fbd6f"
 )
 
 NAME=$(basename "$0" | cut -d'-' -f2 | cut -d'.' -f1)
@@ -166,6 +175,7 @@ parse_common_flag() {
 # Call once after all flags have been parsed.
 setup_toolchain_dir() {
     TOOLCHAIN_DIR="$(pwd)/toolchains/$COMPILER_TYPE"
+    OUTPUT_DIR="$(pwd)/output/${NAME}/${COMPILER_TYPE}"
 }
 
 # Wipe the build workspace and exit.
@@ -426,6 +436,6 @@ git_clone() {
 # ── Final ──────────────────────────────────────────────────────────────────────
 final() {
     echo -e "\n${FINAL_C}🎊 All requested architectures are finished!${NC}"
-    echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${NAME}-build/output${NC}"
+    echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${OUTPUT_DIR}${NC}"
     ls -F --color=auto "$OUTPUT_DIR"
 }

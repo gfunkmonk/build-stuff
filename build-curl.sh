@@ -105,25 +105,27 @@ build_arch() {
         git clone https://github.com/wolfSSL/wolfssl --depth=1 > /dev/null 2>&1
     else
         echo -e "${CORAL}✨ Source code for wolfssl present.${NC}"
-        git -C wolfssl pull origin > /dev/null 2>&1
+        git -C wolfssl pull origin > /dev/null 2>&1 || true
     fi
     local wolfssl_prefix="$ROOT_DIR/wolfssl-libs/$triple"
     mkdir -p "$wolfssl_prefix"
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh (wolfSSL)...${NC}"
-    ./autogen.sh > "$wolfssl_log" 2>&1
+    ./autogen.sh > "$wolfssl_log" 2>&1 || {
+        echo -e "${NEONRED}wolfSSL autogen.sh FAILED. Check $wolfssl_log${NC}"; return 1;
+    }
     local wolfssl_32bit=""
     [[ "$arch" == i*86 ]] && wolfssl_32bit="--enable-32bit --enable-fastmath --disable-asm"
     echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure (wolfSSL)...${NC}"
-    CC="$cc -static" ./configure \
+    CC="$cc" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
         --prefix="$wolfssl_prefix" \
         --enable-curl \
         $wolfssl_32bit \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -Wno-error=shorten-64-to-32" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -Wno-error=shorten-64-to-32 -Wno-error=unused-but-set-variable" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
@@ -158,7 +160,7 @@ build_arch() {
         echo -e "${NEONRED}Autoreconf FAILED. Check $log_file${NC}"; return 1;
     }
     echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...(curl)${NC}"
-    CC="$cc -static" ./configure \
+    CC="$cc" ./configure \
         --host="$triple" \
         --disable-shared \
         --enable-static \
@@ -170,10 +172,10 @@ build_arch() {
         --enable-unix-sockets \
         --with-wolfssl="$wolfssl_prefix" \
         --without-libssh2 \
-        --with-zlib \
+        --without-zlib \
         --without-brotli \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
-        LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 || {
+        LDFLAGS="-static -L${wolf_libdir}" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 

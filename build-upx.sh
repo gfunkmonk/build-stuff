@@ -19,69 +19,39 @@ GIT_C="${SLATE}"
 GIT_C2="${NC}"
 
 # ── Architecture Table (Triple : CMakeProcessor) ──────────────────────────────
-declare_arch_info() {
-  if [[ "$COMPILER_TYPE" == "gcc" ]]; then
-    declare -gA ARCH_INFO=(
-      [i386]="i586-unknown-linux-musl:i586"
-      [i486]="i686-unknown-linux-musl:i686"
-      [i586]="i586-unknown-linux-musl:i586"
-      [i686]="i686-unknown-linux-musl:i686"
-      [x86_64]="x86_64-unknown-linux-musl:x86_64"
-      [arm]="arm-unknown-linux-musleabi:arm"
-      [armhf]="arm-unknown-linux-musleabihf:arm"
-      [armv5]="armv5-unknown-linux-musleabi:armv5"
-      [armv6]="armv6-unknown-linux-musleabi:arm"
-      [armv6hf]="armv6-unknown-linux-musleabihf:arm"
-      [armv7]="armv7-unknown-linux-musleabi:armv7"
-      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-      [aarch64]="aarch64-unknown-linux-musl:aarch64"
-      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-      [m68k]="m68k-unknown-linux-musl:m68k"
-      [mips]="mips-unknown-linux-musl:mips"
-      [mips-sf]="mips-unknown-linux-muslsf:mips"
-      [mips64]="mips64-unknown-linux-musl:mips64"
-      [mips64el]="mips64el-unknown-linux-musl:mips64el"
-      [mipsel]="mipsel-unknown-linux-musl:mipsel"
-      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
-      [or1k]="or1k-unknown-linux-musl:or1k"
-      [powerpc]="powerpc-unknown-linux-musl:powerpc"
-      [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
-      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
-      [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
-      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
-      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
-      [riscv32]="riscv32-unknown-linux-musl:riscv32"
-      [riscv64]="riscv64-unknown-linux-musl:riscv64"
-      [s390x]="s390x-ibm-linux-musl:s390x"
-      [sh4]="sh4-multilib-linux-musl:sh4")
-  else
-    declare -gA ARCH_INFO=(
-      [i586]="i586-unknown-linux-musl:i586"
-      [i686]="i686-unknown-linux-musl:i686"
-      [x86_64]="x86_64-unknown-linux-musl:x86_64"
-      [arm]="arm-unknown-linux-musleabi:arm"
-      [armhf]="arm-unknown-linux-musleabihf:arm"
-      [armv7]="armv7-unknown-linux-musleabi:armv7"
-      [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-      [aarch64]="aarch64-unknown-linux-musl:aarch64"
-      [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
-      [m68k]="m68k-unknown-linux-musl:m68k"
-      [mips]="mips-unknown-linux-musl:mips"
-      [mips-sf]="mips-unknown-linux-muslsf:mips"
-      [mips64]="mips64-unknown-linux-musl:mips64"
-      [mips64el]="mips64el-unknown-linux-musl:mips64el"
-      [mipsel]="mipsel-unknown-linux-musl:mipsel"
-      [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
-      [or1k]="or1k-unknown-linux-musl:or1k"
-      [powerpc]="powerpc-unknown-linux-musl:powerpc"
-      [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
-      [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
-      [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
-      [riscv32]="riscv32-unknown-linux-musl:riscv32"
-      [riscv64]="riscv64-unknown-linux-musl:riscv64"
-      [s390x]="s390x-ibm-linux-musl:s390x")
-  fi
-}
+declare -gA ARCH_INFO=(
+  [i386]="i586-unknown-linux-musl:i586"
+  [i486]="i686-unknown-linux-musl:i686"
+  [i586]="i586-unknown-linux-musl:i586"
+  [i686]="i686-unknown-linux-musl:i686"
+  [x86_64]="x86_64-unknown-linux-musl:x86_64"
+  [arm]="arm-unknown-linux-musleabi:arm"
+  [armhf]="arm-unknown-linux-musleabihf:arm"
+  [armv5]="armv5-unknown-linux-musleabi:armv5"
+  [armv6]="armv6-unknown-linux-musleabi:arm"
+  [armv6hf]="armv6-unknown-linux-musleabihf:arm"
+  [armv7]="armv7-unknown-linux-musleabi:armv7"
+  [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
+  [aarch64]="aarch64-unknown-linux-musl:aarch64"
+  [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+  [m68k]="m68k-unknown-linux-musl:m68k"
+  [mips]="mips-unknown-linux-musl:mips"
+  [mips-sf]="mips-unknown-linux-muslsf:mips"
+  [mips64]="mips64-unknown-linux-musl:mips64"
+  [mips64el]="mips64el-unknown-linux-musl:mips64el"
+  [mipsel]="mipsel-unknown-linux-musl:mipsel"
+  [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+  [or1k]="or1k-unknown-linux-musl:or1k"
+  [powerpc]="powerpc-unknown-linux-musl:powerpc"
+  [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
+  [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
+  [powerpcle-sf]="powerpcle-unknown-linux-muslsf:powerpcle"
+  [powerpc64]="powerpc64-unknown-linux-musl:ppc64"
+  [powerpc64le]="powerpc64le-unknown-linux-musl:ppc64le"
+  [riscv32]="riscv32-unknown-linux-musl:riscv32"
+  [riscv64]="riscv64-unknown-linux-musl:riscv64"
+  [s390x]="s390x-ibm-linux-musl:s390x"
+  [sh4]="sh4-multilib-linux-musl:sh4")
 
 # ── Helper Subcommands ────────────────────────────────────────────────────────
 
@@ -286,7 +256,6 @@ for _arg in "$@"; do
         --clang) set_compiler clang ;;
     esac
 done
-declare_arch_info
 
 # Flag Parsing
 while [[ $# -gt 0 ]]; do
