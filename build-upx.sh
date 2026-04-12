@@ -283,6 +283,21 @@ if [[ -z "$(ls -A "$SOURCE_DIR/vendor/ucl" 2>/dev/null)" ]]; then
     echo -e "${NEONGREEN}Fixed${NC}"
 fi
 
+# Patch pefile.cpp: rename the local 'import' variable in rebuildImports() to
+# 'import_ptr' to avoid a macro-expansion conflict.  The file-level macro
+# "#define import my_import" (added for C++20 keyword compatibility) causes
+# some clang cross-compilers to fail to recognise 'my_import' as the variable
+# declared by IPTR_VAR_OFFSET when the declaration uses 'const import'.
+# Using a name that is not affected by the macro side-steps the issue entirely.
+echo -n -e "${OCHRE}==>${NC} Patching pefile.cpp import variable collision... "
+sed -i \
+    's/IPTR_VAR_OFFSET(const byte, const import,/IPTR_VAR_OFFSET(const byte, import_ptr,/' \
+    "$SOURCE_DIR/src/pefile.cpp"
+sed -i \
+    's/raw_bytes(import + /raw_bytes(import_ptr + /g' \
+    "$SOURCE_DIR/src/pefile.cpp"
+echo -e "${NEONGREEN}Done${NC}"
+
 if [[ -z "$USER_ARCHS" ]]; then
     ARCHS=$(echo "${!ARCH_INFO[@]}" | tr ' ' '\n' | sort | tr '\n' ' ')
 else
