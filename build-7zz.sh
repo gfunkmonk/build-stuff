@@ -81,7 +81,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${LAVENDER}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} ${PEACH}[${NAVAJO}$triple${PEACH}]${NC} ${LAVENDER}using ${LIME}$COMPILER_TYPE${NC}"
+    echo -e "${LAVENDER}🗜️ Targeting:${NC} ${CANARY}$arch_key${NC} ${PEACH}[${NAVAJO}$triple${PEACH}]${NC} ${LAVENDER}using ${LIME}$COMPILER_TYPE${NC}"
 
     mkdir -p "$TOOLCHAIN_DIR"
 
@@ -90,7 +90,7 @@ build_arch() {
     download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
-    echo -e "${NEONRED}🛡️  Verifying Integrity...${NC}"
+    echo -e "${NEONRED}🔐  Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction
@@ -164,7 +164,7 @@ build_arch() {
     verify_binary_arch "$out_file" "$triple"
     local final_size
     final_size=$(du -sh "$out_file" | awk '{print $1}')
-    echo -e "\n${NEONGREEN}✅ Successfully built: ${BWHITE}7zz-$arch_key${NC} (${CANARY}$final_size${NC})"
+    echo -e "\n${NEONGREEN}✔️ Successfully built: ${BWHITE}7zz-$arch_key${NC} (${CANARY}$final_size${NC})"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────

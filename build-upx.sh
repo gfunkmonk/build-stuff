@@ -144,13 +144,13 @@ build_arch() {
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
     [[ "$RESUME_MODE" == true && -f "$out_file" ]] && { echo -e "${SLATE}⏭️  Skipping $arch_key${NC}"; return; }
 
-    echo -e "${NEONBLUE}🔨 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
+    echo -e "${NEONBLUE}🤏 Target:${NC} ${BWHITE}$arch_key${NC} (${SLATE}$triple${NC}) via ${AQUA}$COMPILER_TYPE${NC}"
 
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     download_toolchain "$tarpath" "$tarball" || return 1
 
-    echo -e "${SLATE}==>${NC} Verifying Integrity..."
+    echo -e "${SLATE}==>${NC} 🔑 Verifying Integrity..."
     verify_hash "$tarpath" "$tarball" || exit 1
 
     # 2. Extract
@@ -206,7 +206,7 @@ build_arch() {
     cp "$bin_found" "$out_file"
     "$bin_dir/${triple}-strip" "$out_file" 2>/dev/null || true
     verify_binary_arch "$out_file" "$triple"
-    echo -e "${NEONGREEN}✅ Build Success:${NC} ${BWHITE}upx-$arch_key${NC} (${AQUA}$(du -sh "$out_file" | awk '{print $1}')${NC})"
+    echo -e "${NEONGREEN}PASS ✅ Build Success:${NC} ${BWHITE}upx-$arch_key${NC} (${AQUA}$(du -sh "$out_file" | awk '{print $1}')${NC})"
 }
 
 # ── Usage ─────────────────────────────────────────────────────────────────────

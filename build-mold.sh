@@ -80,7 +80,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${SKY}🏗️  Targeting:${NC} ${HIGHLIGHTER}$arch${NC} [${LAGOON}$triple${NC}] using ${JUNEBUD}$COMPILER_TYPE${NC}"
+    echo -e "${SKY}🦠 Targeting:${NC} ${HIGHLIGHTER}$arch${NC} [${LAGOON}$triple${NC}] using ${JUNEBUD}$COMPILER_TYPE${NC}"
 
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
@@ -90,7 +90,7 @@ build_arch() {
     download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
-    echo -e "${PEACH}🛡️  Verifying Integrity...${NC}"
+    echo -e "${PEACH}🔒︎  Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction Check

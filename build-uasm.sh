@@ -86,7 +86,7 @@ build_arch() {
         return
     fi
 
-    echo -e "${CARIBBEAN}🏗️  Targeting:${NC} ${CANARY}$arch_key${NC} [${SLATE}$triple${NC}] via ${TAWNY}$COMPILER_TYPE${NC}"
+    echo -e "${CARIBBEAN}🛠️ Targeting:${NC} ${CANARY}$arch_key${NC} [${SLATE}$triple${NC}] via ${TAWNY}$COMPILER_TYPE${NC}"
 
     mkdir -p "$TOOLCHAIN_DIR"
 
@@ -95,7 +95,7 @@ build_arch() {
     download_toolchain "$tarpath" "$tarball" || return 1
 
     # 2. Hash Verification
-    echo -e "${CORAL}🛡️  Verifying Integrity...${NC}"
+    echo -e "${CORAL}🗝️ Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
 
     # 3. Extraction

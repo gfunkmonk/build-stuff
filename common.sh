@@ -413,9 +413,9 @@ verify_binary_arch() {
     esac
 
     if [[ "$machine" == *"$expected"* ]]; then
-        echo -e "${NEONGREEN}  ✓ arch verified:${NC} ${GOLDENROD}$machine${NC}"
+        echo -e "${NEONGREEN}👌 arch verified:${NC} ${GOLDENROD}$machine${NC}"
     else
-        echo -e "${NEONRED}  ✗ ARCH MISMATCH for $(basename "$bin")!${NC}"
+        echo -e "${NEONRED} 👎 ARCH MISMATCH for $(basename "$bin")!${NC}"
         echo -e "    Expected machine containing: ${LEMON}$expected${NC}"
         echo -e "    Got:                         ${TOMATO}$machine${NC}"
         return 1
@@ -428,14 +428,14 @@ git_clone() {
         echo -e "${GIT_C}==>${GIT_C2} Cloning ${NAME} source...${NC}"
         git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
     else
-        echo -e "${CORAL}✨ Source code present.${NC}"
+        echo -e "${CORAL}🍔 Source code present.${NC}"
         git -C "$SOURCE_DIR" pull origin "$REPO_BRANCH" > /dev/null 2>&1
     fi
 }
 
 # ── Final ──────────────────────────────────────────────────────────────────────
 final() {
-    echo -e "\n${FINAL_C}🎊 All requested architectures are finished!${NC}"
+    echo -e "\n${FINAL_C}🎇 All requested architectures are finished!${NC}"
     echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${OUTPUT_DIR}${NC}"
     ls -F --color=auto "$OUTPUT_DIR"
 }

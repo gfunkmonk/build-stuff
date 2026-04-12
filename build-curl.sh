@@ -73,14 +73,14 @@ build_arch() {
         echo -e "${MINT}⏭️  Skipping $arch_key: Binary already exists (Resume Mode)${NC}"
         return
     fi
-    echo -e "${CARIBBEAN}🏗️  Targeting:${NC} ${CANARY}$arch${NC} ${LEMON}[${PEACH}$triple${LEMON}]${NC} ${CARIBBEAN}using ${NEONPURPLE}$COMPILER_TYPE${NC}"
+    echo -e "${CARIBBEAN}↓📂 Targeting:${NC} ${CANARY}$arch${NC} ${LEMON}[${PEACH}$triple${LEMON}]${NC} ${CARIBBEAN}using ${NEONPURPLE}$COMPILER_TYPE${NC}"
     # Ensure toolchain directory exists BEFORE curl runs
     mkdir -p "$TOOLCHAIN_DIR"
     # 1. Download Toolchain
     local tarpath="$TOOLCHAIN_DIR/$tarball"
     download_toolchain "$tarpath" "$tarball" || return 1
     # 2. Hash Verification
-    echo -e "${GOLDENROD}🛡️  Verifying Integrity...${NC}"
+    echo -e "${GOLDENROD}🗝🔒 Verifying Integrity...${NC}"
     verify_hash "$tarpath" "$tarball" || return 1
     # 3. Extraction Check
     local extract_path="$TOOLCHAIN_DIR/$triple"
