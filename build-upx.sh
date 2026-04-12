@@ -171,6 +171,18 @@ build_arch() {
       sed -i 's/static_assert(alignof/ \/\/ static_assert(alignof/g' "$SOURCE_DIR/src/util/cxxlib.h"
     fi
 
+    # Per-arch compiler flag adjustments
+    local arch_cflags="$CFLAGS"
+    local arch_cxxflags="$CXXFLAGS"
+    # powerpc64 ELFv1 (big-endian) + clang/lld: the compiler emits calls to
+    # _savefpr_*/_restfpr_* GCC helper routines that lld does not provide.
+    # -mno-save-fpr disables those out-of-line helpers and emits inline
+    # save/restore sequences instead, resolving the undefined-symbol error.
+    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
+        arch_cflags="$CFLAGS -mno-save-fpr"
+        arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+    fi
+
     # 4. Compile with Error Logging
     echo -n -e "${SLATE}==>${NC} Configuring CMake... "
 
@@ -180,8 +192,8 @@ build_arch() {
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
         -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_TYPE}" \
         -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
-        -DCMAKE_C_FLAGS="${CFLAGS}" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+        -DCMAKE_C_FLAGS="${arch_cflags}" \
+        -DCMAKE_CXX_FLAGS="${arch_cxxflags}" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
