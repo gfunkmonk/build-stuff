@@ -181,7 +181,7 @@ build_arch() {
         --without-zlib \
         --without-brotli \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
-        LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 ||
+        LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
