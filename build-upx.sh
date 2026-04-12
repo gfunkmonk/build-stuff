@@ -213,7 +213,7 @@ build_arch() {
     # _savefpr_*/_restfpr_* GCC helper routines that lld does not provide.
     # -mno-save-fpr disables those out-of-line helpers and emits inline
     # save/restore sequences instead, resolving the undefined-symbol error.
-    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
+    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "gcc" ]]; then
         arch_cflags="$CFLAGS -mno-save-fpr"
         arch_cxxflags="$CXXFLAGS -mno-save-fpr"
     fi
@@ -224,13 +224,20 @@ build_arch() {
     # bundled ld.lld does not recognise.  --strip-debug tells the linker to
     # discard all .debug_* input sections, so those relocations are never
     # evaluated and the configure/try_compile steps succeed.
-    local extra_linker_flags=""
+    local arch_ldflags=""
     if [[ "$arch_key" == "loongarch64" ]]; then
-      extra_linker_flags="-Wl,--strip-debug"
+      arch_ldflags="-Wl,--strip-debug"
     fi
 
+    # powerpc64 ELFv1 (big-endian) + clang/lld: the GCC-compiled libstdc++.a
+    # references _savefpr_*/_restfpr_* GCC runtime helpers.  lld does not
+    # auto-inject libgcc.  A plain -lgcc in CMAKE_EXE_LINKER_FLAGS doesn't
+    # work because CMake places those flags *before* the object files in the
+    # link command, so the linker processes libgcc.a before any reference
+    # exists and drops it entirely.  --whole-archive forces every symbol in
+    # libgcc.a to be included unconditionally, regardless of link order.
     if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
-      extra_linker_flags="-lgcc"
+      arch_ldflags="-static -Wl,--whole-archive -lgcc -Wl,--no-whole-archive"
     fi
 
     # 4. Compile with Error Logging
@@ -244,7 +251,7 @@ build_arch() {
         -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
         -DCMAKE_C_FLAGS="${arch_cflags}" \
         -DCMAKE_CXX_FLAGS="${arch_cxxflags}" \
-        -DCMAKE_EXE_LINKER_FLAGS="-static ${extra_linker_flags}" \
+        -DCMAKE_EXE_LINKER_FLAGS="-static ${arch_ldflags}" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
         > "$log_file" 2>&1; then

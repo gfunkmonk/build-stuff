@@ -109,7 +109,14 @@ build_arch() {
     local bundle_dir="$SOURCE_DIR/CPP/7zip/Bundles/Alone2"
     # Use double-quotes so ${ARCH_FLAGS} is expanded, and match the whole
     # CFLAGS_BASE line (^...*) so the sed is idempotent across all arches.
-    sed -i 's|CFLAGS_BASE = -O2|CFLAGS_BASE = -Os -static -ffunction-sections -fdata-sections -fno-stack-protector -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables -flto=auto -ffat-lto-objects|g' "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
+    # GCC and clang have different LTO flag syntax.
+    local lto_flags
+    if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+        lto_flags="-flto=auto -ffat-lto-objects"
+    else
+        lto_flags="-flto=thin"
+    fi
+    sed -i "s|CFLAGS_BASE = -O2|CFLAGS_BASE = -Os -static -ffunction-sections -fdata-sections -fno-stack-protector -fshort-enums -fno-ident -fno-unwind-tables -fno-asynchronous-unwind-tables ${lto_flags}|g" "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
     sed -i 's/LDFLAGS = -Wall/LDFLAGS = -static -Wl,--gc-sections/g' "$SOURCE_DIR/CPP/7zip/7zip_gcc.mak"
 
     cd "$bundle_dir"

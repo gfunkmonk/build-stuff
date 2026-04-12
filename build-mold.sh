@@ -126,7 +126,7 @@ build_arch() {
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_COLOR_MAKEFILE=ON \
         -DCMAKE_C_FLAGS="${CFLAGS} -fPIC" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC -Wno-stringop-overflow" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC$([[ "$COMPILER_TYPE" == "gcc" ]] && echo " -Wno-stringop-overflow")" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
             echo -e "${NEONRED}CMake configure FAILED. Check $log_file${NC}"; return 1;
         }
