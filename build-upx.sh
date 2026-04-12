@@ -212,17 +212,14 @@ build_arch() {
     local arch_ldflags=""
 
     if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
-        if [[ "$COMPILER_TYPE" == "clang" ]]; then
-            arch_ldflags="-Wl,--defsym=_restfpr_31=main"
-        else
-            arch_cflags="$CFLAGS -mno-save-fpr"
-            arch_cxxflags="$CXXFLAGS -mno-save-fpr"
-        fi
-    fi
-
-    # 3.6 LoongArch64 LLD debug-relocation workaround
-    if [[ "$arch_key" == "loongarch64" ]]; then
-      arch_ldflags="-Wl,--strip-debug"
+	if [[ "$COMPILER_TYPE" == "clang" ]]; then
+		arch_ldflags="-Wl,--defsym=_restfpr_31=main"
+	else
+		arch_cflags="$CFLAGS -mno-save-fpr"
+		arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+	fi
+    elif [[ "$arch_key" == "loongarch64" ]]; then
+	arch_ldflags="-Wl,--strip-debug"
     fi
 
     # 4. Compile with Error Logging
