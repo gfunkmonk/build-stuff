@@ -112,6 +112,7 @@ build_arch() {
     mkdir -p "$wolfssl_prefix"
     cd wolfssl/
     make distclean >/dev/null 2>&1 || true
+    rm -f config.cache
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Running autogen.sh (wolfSSL)...${NC}"
     ./autogen.sh > "$wolfssl_log" 2>&1 || {
         echo -e "${NEONRED}wolfSSL autogen.sh FAILED. Check $wolfssl_log${NC}"; return 1;
