@@ -130,7 +130,7 @@ build_arch() {
         --prefix="$wolfssl_prefix" \
         --enable-curl \
         $wolfssl_32bit \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections ${clang_only_flags}" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector ${clang_only_flags}" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
@@ -180,7 +180,7 @@ build_arch() {
         --without-libssh2 \
         --without-zlib \
         --without-brotli \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -fno-stack-protector" \
         LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 || {
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
