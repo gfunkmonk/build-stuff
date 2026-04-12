@@ -104,12 +104,12 @@ declare -A HASHES_CLANG=(
 )
 
 NAME=$(basename "$0" | cut -d'-' -f2 | cut -d'.' -f1)
-ROOT_DIR="$(pwd)/${NAME}-build"
+ROOT_DIR="$(pwd)/build/${NAME}"
 SOURCE_DIR="$ROOT_DIR/${NAME}-src"
 BUILD_BASE="$ROOT_DIR/build"
-OUTPUT_DIR="$ROOT_DIR/output"
-JOBS="$(nproc)"
 COMPILER_TYPE="clang"
+OUTPUT_DIR="$(pwd)/output/${NAME}/${COMPILER_TYPE}"
+JOBS="$(nproc)"
 RESUME_MODE=false
 USER_ARCHS=""
 CFLAGS="-Os"

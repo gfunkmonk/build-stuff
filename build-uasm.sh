@@ -115,12 +115,12 @@ build_arch() {
     cp -r "$SOURCE_DIR/." "$build_work_dir/"
 
     # 6. Compile with Interactive Progress Bar & Logging
-    local log_file="$ROOT_DIR/build-${arch_key}.log"
+    local log_file="$(pwd)/build/${NAME}/build-${arch_key}.log"
     mkdir -p "$ROOT_DIR"
 
     # This strips the ROOT_DIR from the path for a cleaner display
-    local relative_log1="${log_file#"$ROOT_DIR/"}"
-    local relative_log="${NAME}-build/$relative_log1"
+    #local relative_log="${log_file#"$ROOT_DIR/"}"
+    local relative_log="${log_file#"$(pwd)/"}"
 
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""
