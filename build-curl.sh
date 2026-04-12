@@ -164,6 +164,7 @@ build_arch() {
     autoreconf -fi > "$log_file" 2>&1 || {
         echo -e "${NEONRED}Autoreconf FAILED. Check $log_file${NC}"; return 1;
     }
+
     echo -e "${CARIBBEAN}==>${NC} ${LAGOON}Running Configure...(curl)${NC}"
     CC="$cc" ./configure \
         --host="$triple" \
