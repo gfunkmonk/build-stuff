@@ -95,6 +95,9 @@ build_arch() {
     local ARCH_FLAGS=""
     [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32 -DWORD32 -DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
     [[ "$arch" == armhf || "$arch" == armv7 ]] && ARCH_FLAGS="-DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
+    # -Wshorten-64-to-32 is Clang-only; passing it to GCC causes a hard error
+    local clang_only_flags=""
+    [[ "$COMPILER_TYPE" != "gcc" ]] && clang_only_flags="-Wno-error=shorten-64-to-32"
 
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     # Separate log for the make phase only — prevents configure test-compilation
@@ -127,7 +130,7 @@ build_arch() {
         --prefix="$wolfssl_prefix" \
         --enable-curl \
         $wolfssl_32bit \
-        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections -Wno-error=shorten-64-to-32 -Wno-error=unused-but-set-variable" \
+        CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections ${clang_only_flags}" \
         LDFLAGS="-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
             echo -e "${NEONRED}wolfSSL Configure FAILED. Check $wolfssl_log${NC}"; return 1;
         }
@@ -140,7 +143,7 @@ build_arch() {
 
     echo -e "${CARIBBEAN}==>${NC} ${CANARY}Building wolfSSL (Jobs: $JOBS)...${NC}"
     # Write make output to a fresh log so grep-count only sees make lines.
-    make -j"$JOBS" V=1 > "$wolfssl_build_log" 2>&1 &
+    make -j"$JOBS" V=1 LDFLAGS="-static -all-static -Wl,--gc-sections" > "$wolfssl_build_log" 2>&1 &
     track_progress $! "$wolfssl_build_log" "grep-count" "$total_wolfssl" "${GOLDENROD}" " -c -o " || {
         cat "$wolfssl_build_log" >> "$wolfssl_log"
         echo -e "${NEONRED}wolfSSL build FAILED. Check $wolfssl_log${NC}"; return 1;
@@ -148,7 +151,7 @@ build_arch() {
     # Merge build log into the main wolfssl log for a complete audit trail.
     cat "$wolfssl_build_log" >> "$wolfssl_log"
 
-    make install >> "$wolfssl_log" 2>&1 || {
+    make install LDFLAGS="-static -all-static -Wl,--gc-sections" >> "$wolfssl_log" 2>&1 || {
         echo -e "${NEONRED}wolfSSL Install FAILED. Check $wolfssl_log${NC}"; return 1;
     }
 
@@ -177,7 +180,7 @@ build_arch() {
         --without-zlib \
         --without-brotli \
         CFLAGS="${CFLAGS} ${ARCH_FLAGS} -ffunction-sections -fdata-sections" \
-        LDFLAGS="-static -L${wolf_libdir}" >> "$log_file" 2>&1 || {
+        LDFLAGS="-static -L${wolf_libdir} -Wl,--gc-sections" >> "$log_file" 2>&1 ||
             echo -e "${NEONRED}Configure FAILED. Check $log_file${NC}"; return 1;
         }
 
