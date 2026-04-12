@@ -89,6 +89,7 @@ build_arch() {
     local bin_dir="$extract_path/bin"
     local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
     local strip="$bin_dir/${triple}-strip"
+    export PATH="$bin_dir:$PATH"
 
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""

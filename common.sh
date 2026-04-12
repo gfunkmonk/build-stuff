@@ -126,7 +126,7 @@ CXXFLAGS="-Os"
 
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/ladder"
-CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/supermarket"
+CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/teste"
 RELEASE_BASE="$CLANG_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
