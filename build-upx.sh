@@ -209,35 +209,20 @@ build_arch() {
     # Per-arch compiler flag adjustments
     local arch_cflags="$CFLAGS"
     local arch_cxxflags="$CXXFLAGS"
-    # powerpc64 ELFv1 (big-endian) + clang/lld: the compiler emits calls to
-    # _savefpr_*/_restfpr_* GCC helper routines that lld does not provide.
-    # -mno-save-fpr disables those out-of-line helpers and emits inline
-    # save/restore sequences instead, resolving the undefined-symbol error.
-    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "gcc" ]]; then
-        arch_cflags="$CFLAGS -mno-save-fpr"
-        arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+    local arch_ldflags=""
+
+    if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
+        if [[ "$COMPILER_TYPE" == "clang" ]]; then
+            arch_ldflags="-Wl,--defsym=_restfpr_31=main"
+        else
+            arch_cflags="$CFLAGS -mno-save-fpr"
+            arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+        fi
     fi
 
     # 3.6 LoongArch64 LLD debug-relocation workaround
-    # The libstdc++.a in the clang sysroot carries .debug_info sections that
-    # use R_LARCH_ADD6 (relocation type 9), a psABI v2 relocation that the
-    # bundled ld.lld does not recognise.  --strip-debug tells the linker to
-    # discard all .debug_* input sections, so those relocations are never
-    # evaluated and the configure/try_compile steps succeed.
-    local arch_ldflags=""
     if [[ "$arch_key" == "loongarch64" ]]; then
       arch_ldflags="-Wl,--strip-debug"
-    fi
-
-    # powerpc64 ELFv1 (big-endian) + clang/lld: the GCC-compiled libstdc++.a
-    # references _savefpr_*/_restfpr_* GCC runtime helpers.  lld does not
-    # auto-inject libgcc.  A plain -lgcc in CMAKE_EXE_LINKER_FLAGS doesn't
-    # work because CMake places those flags *before* the object files in the
-    # link command, so the linker processes libgcc.a before any reference
-    # exists and drops it entirely.  --whole-archive forces every symbol in
-    # libgcc.a to be included unconditionally, regardless of link order.
-    if [[ "$arch_key" == "powerpc64" && "$COMPILER_TYPE" == "clang" ]]; then
-      arch_ldflags="-static -Wl,--whole-archive -lgcc -Wl,--no-whole-archive"
     fi
 
     # 4. Compile with Error Logging
@@ -287,8 +272,8 @@ show_help() {
     echo -e "  $0 [OPTIONS] [COMMANDS]"
     echo ""
     echo -e "${BWHITE}OPTIONS:${NC}"
-    echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains"
-    echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains (default)"
+    echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains (default)"
+    echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains"
     echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
