@@ -69,12 +69,14 @@ declare_arch_info() {
       [i586]="i586-unknown-linux-musl:i586"
       [i686]="i686-unknown-linux-musl:i686"
       [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
+      [m68k]="m68k-unknown-linux-musl:m68k"
       [mips]="mips-unknown-linux-musl:mips"
       [mips-sf]="mips-unknown-linux-muslsf:mips"
       [mips64]="mips64-unknown-linux-musl:mips64"
       [mips64el]="mips64el-unknown-linux-musl:mips64el"
       [mipsel]="mipsel-unknown-linux-musl:mipsel"
       [mipsel-sf]="mipsel-unknown-linux-muslsf:mipsel"
+      [or1k]="or1k-unknown-linux-musl:or1k"
       [powerpc]="powerpc-unknown-linux-musl:powerpc"
       [powerpc-sf]="powerpc-unknown-linux-muslsf:powerpc"
       [powerpcle]="powerpcle-unknown-linux-musl:powerpcle"
@@ -84,6 +86,7 @@ declare_arch_info() {
       [riscv32]="riscv32-unknown-linux-musl:riscv32"
       [riscv64]="riscv64-unknown-linux-musl:riscv64"
       [s390x]="s390x-ibm-linux-musl:s390x"
+      [sh4]="sh4-multilib-linux-musl:sh4"
       [x86_64]="x86_64-unknown-linux-musl:x86_64")
   fi
 }
