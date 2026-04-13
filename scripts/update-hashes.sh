@@ -34,21 +34,28 @@ build_table() {
 replace_table() {
     local var_name="$1"
     local new_block="$2"
-    local file="$3"
+    local tag="$3"
 
-    # Write new block to a temp file
+    local prefix="${var_name#HASHES_}"
     local tmp
     tmp=$(mktemp)
-    echo "$new_block" > "$tmp"
+    # We use printf to avoid the trailing newline that 'echo' adds
+    printf "%s" "$new_block" > "$tmp"
 
-    # Replace everything from "declare -A VAR=(" up to and including the closing ")"
-    perl -i -0pe "s|declare -A ${var_name}=\(.*?\)|\$(cat $tmp)|se" "$file"
+    perl -i -0777 -pe "
+        BEGIN { undef $/; open f, '<', '$tmp'; \$c = <f>; close f; }
+        # Replace the HASHES array block
+        s|declare -A $var_name=\(.*?\)|\$c|sg;
+        # Update the RELEASE_BASE tag
+        s|(${prefix}_RELEASE_BASE=\".*/download/)[^\"]*\"|\${1}${tag}\"|g;
+    " "$COMMON_SH"
+
     rm -f "$tmp"
 }
 
 usage() {
     echo "Usage: $0 --gcc-tag <tag> --clang-tag <tag>"
-    echo "Example: $0 --gcc-tag ladder --clang-tag magazine"
+    echo "Example: $0 --gcc-tag ladder --clang-tag garlicbread"
     exit 1
 }
 
@@ -71,7 +78,8 @@ echo "Fetching Clang hashes from release: $CLANG_TAG"
 CLANG_BLOCK=$(build_table "HASHES_CLANG" "$CLANG_REPO" "$CLANG_TAG")
 
 echo "Updating $COMMON_SH..."
-replace_table "HASHES_GCC"   "$GCC_BLOCK"   "$COMMON_SH"
-replace_table "HASHES_CLANG" "$CLANG_BLOCK" "$COMMON_SH"
+# We pass the tag now so the function knows what to put in the URL
+replace_table "HASHES_GCC"   "$GCC_BLOCK"   "$GCC_TAG"
+replace_table "HASHES_CLANG" "$CLANG_BLOCK" "$CLANG_TAG"
 
-echo "Done. Verify with: grep -A2 'declare -A HASHES' $COMMON_SH"
+echo "Done. Verify with: grep -E 'RELEASE_BASE|declare -A HASHES' $COMMON_SH"
