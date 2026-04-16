@@ -32,8 +32,9 @@ show_help() {
     echo -e "${CANARY}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${CARIBBEAN}--gcc${NC}             Use GCC toolchains (default)"
+    echo -e "  ${CARIBBEAN}--gcc${NC}             Use GCC toolchains (musl, default)"
     echo -e "  ${CARIBBEAN}--clang${NC}           Use Clang toolchains"
+    echo -e "  ${CARIBBEAN}--gnu${NC}             Use GNU GCC toolchains (glibc)"
     echo -e "  ${CARIBBEAN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${CARIBBEAN}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${CARIBBEAN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
@@ -87,7 +88,7 @@ build_arch() {
     extract_toolchain "$tarpath" "$triple" || return 1
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
-    local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
+    local cc="$bin_dir/${triple}-${COMPILER_BIN}"
     local strip="$bin_dir/${triple}-strip"
     export PATH="$bin_dir:$PATH"
 
@@ -97,7 +98,7 @@ build_arch() {
     [[ "$arch" == armhf || "$arch" == armv7 ]] && ARCH_FLAGS="-DSIZEOF_LONG=4 -DSIZEOF_LONG_LONG=8"
     # -Wshorten-64-to-32 is Clang-only; passing it to GCC causes a hard error
     local clang_only_flags=""
-    [[ "$COMPILER_TYPE" != "gcc" ]] && clang_only_flags="-Wno-error=shorten-64-to-32"
+    [[ "$COMPILER_BIN" != "gcc" ]] && clang_only_flags="-Wno-error=shorten-64-to-32"
 
     local wolfssl_log="$ROOT_DIR/wolfssl-$arch_key.log"
     # Separate log for the make phase only — prevents configure test-compilation

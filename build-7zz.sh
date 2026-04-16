@@ -34,8 +34,9 @@ show_help() {
     echo -e "${GOLDENROD}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${OCHRE}--gcc${NC}             Use GCC toolchains (default)"
+    echo -e "  ${OCHRE}--gcc${NC}             Use GCC toolchains (musl, default)"
     echo -e "  ${OCHRE}--clang${NC}           Use Clang toolchains"
+    echo -e "  ${OCHRE}--gnu${NC}             Use GNU GCC toolchains (glibc)"
     echo -e "  ${OCHRE}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${OCHRE}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${OCHRE}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
@@ -99,9 +100,9 @@ build_arch() {
 
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
-    local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
+    local cc="$bin_dir/${triple}-${COMPILER_BIN}"
     local cxx_name="clang++"
-    [[ "$COMPILER_TYPE" == "gcc" ]] && cxx_name="g++"
+    [[ "$COMPILER_BIN" == "gcc" ]] && cxx_name="g++"
     local cxx="$bin_dir/${triple}-$cxx_name"
     local strip="$bin_dir/${triple}-strip"
 
@@ -111,7 +112,7 @@ build_arch() {
     # CFLAGS_BASE line (^...*) so the sed is idempotent across all arches.
     # GCC and clang have different LTO flag syntax.
     local lto_flags
-    if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+    if [[ "$COMPILER_BIN" == "gcc" ]]; then
         lto_flags="-flto=auto -ffat-lto-objects"
     else
         lto_flags="-flto=thin"

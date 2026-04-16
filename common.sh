@@ -77,6 +77,49 @@ declare -A HASHES_GCC=(
   [x86_64-unknown-linux-musl.tar.xz]="a6e669814db229cbbbab7ecb3c4273ce2eb0d4466729ee59c14f095b5e28232c"
 )
 
+declare -A HASHES_GNU=(
+  [aarch64-unknown-linux-gnu.tar.xz]="23476bea9bb0910f1f36d0eb5d63a25349fa1a04d1c4f3614a76f062dd0b4943"
+  [alphaev56-unknown-linux-gnu.tar.xz]="066a2c2e517334c57a29e1c38262504dc69bc73282a5617e9cfdeaf06cee0f04"
+  [alphaev67-unknown-linux-gnu.tar.xz]="3d8b1be7564a6cb50a1798556e8b847d132ccbe851da692aba0004c4a9dc923e"
+  [arm-unknown-linux-gnueabi.tar.xz]="81aef781d2aaf88912f386732e85e79f3e657bb9dcba71e8366a1fdbebee0db7"
+  [arm-unknown-linux-gnueabihf.tar.xz]="de3c8fbaf753dd7f349c6f073a35647520e81b8fb0c3bab3f87ae2d7e5dc4473"
+  [armv4t-unknown-linux-gnueabi.tar.xz]="827b4b2df23e3f646312f745131e26a43f5c4ce3705df44bab2300d650e22884"
+  [armv5-unknown-linux-gnueabi.tar.xz]="de1f4ca9c8bf3e941645816776ccc75835f6b447b2de9e657ecdee97d07d70f1"
+  [armv6-unknown-linux-gnueabi.tar.xz]="fb3a4a406b48853ea10abbebfe4ff3f376eac3ba0b443b6811c0ba2d0afc9e74"
+  [armv6-unknown-linux-gnueabihf.tar.xz]="0c513e4b8783cf7c034b5b737f8009d6b17ccec4c24fad170f3b1fdc5aa61964"
+  [armv7-unknown-linux-gnueabi.tar.xz]="21fbecc61e6ecf2ed4050dfc6a60584b7aaae45ea3a43b51430ce30c9fb174aa"
+  [armv7-unknown-linux-gnueabihf.tar.xz]="691366636322ee23ee23e175ea58b005eeb4d335ad0b115e250b125de7b6c4fc"
+  [hppa-unknown-linux-gnu.tar.xz]="a58394ee0b3fa9d3a3e8d9dd17eeee2beb109a2cfa8baa00393049ed30994e17"
+  [i486-unknown-linux-gnu.tar.xz]="f62ef5a3fc1c6f9de5d94dc134dd09acb362c47eb967bf1f4b30fd85845a07a0"
+  [i586-unknown-linux-gnu.tar.xz]="08e05c85e977ba3bd88ae9846aed52d573c6ca0df106e8d98ee182611cca3ed5"
+  [i686-unknown-linux-gnu.tar.xz]="573a48da2b985ac11d05b84b156afb4b9b8b5665bcadb7f5f3857864a7fa23da"
+  [loongarch64-unknown-linux-gnu.tar.xz]="7d8f442e0b9527dc12bea496c1db057ca05b2eb5e2f2ad7d34311881628469ca"
+  [m68k-unknown-linux-gnu.tar.xz]="16ec9256a078f1ec0c05e5fcca42ce4c532bdd7be5931b99ff043d8aaad03a9d"
+  [microblaze-xilinx-linux-gnu.tar.xz]="7aac168c77b17d1641885a9ef35d8bab9dbba580b80dd1c42f1d418a0b49c5b8"
+  [microblazeel-xilinx-linux-gnu.tar.xz]="6cd18a9dd3f40f35f5df14bda1e95c0d5e29b9457a65ec62af441b40e4d317dc"
+  [mips-unknown-linux-gnu.tar.xz]="1eed6bffbff3cee32994c180f58125a3358d2f21e1f767fc2f98cc0feb8166b7"
+  [mips-unknown-linux-gnusf.tar.xz]="82755332a54f3b79fa197176bbf257e27970520e18d08ae514bdb9a4b7ebf6c8"
+  [mips64-unknown-linux-gnu.tar.xz]="f9ecb78d0f609a5e427fc6d8cae339c79bc9ebe47a27ae0de82b64440b3612c4"
+  [mips64el-unknown-linux-gnu.tar.xz]="a52e74fe01070f33ed575837a8d8e7149d8201c2b4d99dcc33a05ed1e0093ce6"
+  [mipsel-unknown-linux-gnu.tar.xz]="64feb690f16d3170d9da298730c83f0b832014e1b7744ea9cbfd1e9873ef1f84"
+  [mipsel-unknown-linux-gnusf.tar.xz]="b267ae79d0b0e43fc76316184deda90155dea6105eccf42a69d89e8474b66949"
+  [or1k-unknown-linux-gnu.tar.xz]="d8c1722095fb67923a948a9190ba6e84ca651d5d6f6661f8a28566dfa6f078bb"
+  [powerpc-unknown-linux-gnu.tar.xz]="5031e220d705b3d496136ae9012091761498b4670a8e72d1824d0aa8740e3c5b"
+  [powerpc-unknown-linux-gnusf.tar.xz]="78da83f4e1e91e0dcae29a0ca6cd60e33e4c282055b277d6b6d1c1d995246a78"
+  [powerpc64-unknown-linux-gnu.tar.xz]="e6c986792656162846f91b51dbd6ebaccc8dbeec0fb7580dc771d9ad0ac76406"
+  [powerpc64le-unknown-linux-gnu.tar.xz]="da57e2676a5b96d9c9b9f9289b9da2ec886b0094ca99d00ba53a99b70ffc2d8c"
+  [powerpcle-unknown-linux-gnu.tar.xz]="2a8f8de0561676d31d7a36129b613686ebf8077fbfeba2192f3822feab039bde"
+  [powerpcle-unknown-linux-gnusf.tar.xz]="fbcd5d2c0dc6926131e248a69c9e8a9dca4c928bded26246514ea1458e25b9f5"
+  [riscv32-unknown-linux-gnu.tar.xz]="2cdeff1b39e9b46a26b0d98a43206d5577163fb2c4304b1d9b3a3487287692d6"
+  [riscv64-unknown-linux-gnu.tar.xz]="9259a6d5f0798cc0526abbcf36ed4c2a1785359f640aa735375a9cd8a368c518"
+  [s390-ibm-linux-gnu.tar.xz]="a4f49fe853fbe2af91c4853bcbbaccbe748bd0c295833951ba79071e15259d5f"
+  [s390x-ibm-linux-gnu.tar.xz]="84adc7f18529b09a45856d536048b9da8d8369f6c8e675d1300e8a58d3524f14"
+  [sh4-multilib-linux-gnu.tar.xz]="89c8c12ae9089b079f73e983752fc06e79fb89385ed079531a44b8e7fecdbd07"
+  [sparc-unknown-linux-gnu.tar.xz]="fa71e98e4764e507625c9531564ec4b96eb165aadddc6af37d8ad419a9b16aaf"
+  [sparc64-unknown-linux-gnu.tar.xz]="414c48f1a1a6aa78dd39baaa2af3faadaf87bc1f21e74d92d67026224a8cc7a4"
+  [x86_64-unknown-linux-gnu.tar.xz]="48e4ace8ce814e74b95ee3998bf201456b895f857756220e086dbc31568f02c8"
+)
+
 declare -A HASHES_CLANG=(
   [aarch64-unknown-linux-musl.tar.xz]="b6f240e581187cc712738a980c8f8d670b1ce7692f606f183905e5fe6ccd4401"
   [arm-unknown-linux-musleabi.tar.xz]="63aa4e63b4b8a5ab445072951bc9229d4fa7d8e0345b99998e6adf395f527398"
@@ -117,6 +160,7 @@ ROOT_DIR="$(pwd)/build/${NAME}"
 SOURCE_DIR="$ROOT_DIR/${NAME}-src"
 BUILD_BASE="$ROOT_DIR/build"
 COMPILER_TYPE="gcc"
+COMPILER_BIN="gcc"
 OUTPUT_DIR="$(pwd)/output/${NAME}/${COMPILER_TYPE}"
 JOBS="$(nproc)"
 RESUME_MODE=false
@@ -127,18 +171,24 @@ CXXFLAGS="-Os"
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/ladder"
 CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/garlicbread"
+GNU_RELEASE_BASE="https://github.com/gfunkmonk/gnu-cross/releases/download/onelittleendian"
 RELEASE_BASE="$CLANG_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
 
 # Set compiler type and matching release base URL.
-# Usage: set_compiler gcc|clang
+# Usage: set_compiler gcc|clang|gnu
 set_compiler() {
     COMPILER_TYPE="$1"
     if [[ "$COMPILER_TYPE" == "gcc" ]]; then
         RELEASE_BASE="$GCC_RELEASE_BASE"
+        COMPILER_BIN="gcc"
+    elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
+        RELEASE_BASE="$GNU_RELEASE_BASE"
+        COMPILER_BIN="gcc"
     else
         RELEASE_BASE="$CLANG_RELEASE_BASE"
+        COMPILER_BIN="clang"
     fi
 }
 
@@ -153,6 +203,7 @@ parse_common_flag() {
     case "$1" in
         --gcc)       set_compiler gcc;   COMMON_SHIFT=1; return 0 ;;
         --clang)     set_compiler clang; COMMON_SHIFT=1; return 0 ;;
+        --gnu)       set_compiler gnu;   COMMON_SHIFT=1; return 0 ;;
         -r|--resume) RESUME_MODE=true;   COMMON_SHIFT=1; return 0 ;;
         -j|--jobs)   JOBS="$2";          COMMON_SHIFT=2; return 0 ;;
         -a|--arch)   USER_ARCHS="$2";    COMMON_SHIFT=2; return 0 ;;
@@ -239,7 +290,13 @@ verify_hash() {
     local tarpath="$1"
     local tarball="$2"
     local expected
-    [[ "$COMPILER_TYPE" == "gcc" ]] && expected="${HASHES_GCC[$tarball]}" || expected="${HASHES_CLANG[$tarball]}"
+    if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+        expected="${HASHES_GCC[$tarball]}"
+    elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
+        expected="${HASHES_GNU[$tarball]}"
+    else
+        expected="${HASHES_CLANG[$tarball]}"
+    fi
     local actual
     actual=$(sha256sum "$tarpath" | awk '{print $1}')
     if [[ -z "$expected" ]]; then

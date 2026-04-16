@@ -32,8 +32,9 @@ show_help() {
     echo -e "${MAUVE}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${CHARTREUSE}--gcc${NC}                Use GCC toolchains (default)"
+    echo -e "  ${CHARTREUSE}--gcc${NC}                Use GCC toolchains (musl, default)"
     echo -e "  ${CHARTREUSE}--clang${NC}              Use Clang toolchains"
+    echo -e "  ${CHARTREUSE}--gnu${NC}                Use GNU GCC toolchains (glibc)"
     echo -e "  ${CHARTREUSE}-a|--arch \"LIST\"${NC}     Space separated list of arches to build"
     echo -e "  ${CHARTREUSE}-r|--resume${NC}          Skip architectures already found in output/"
     echo -e "  ${CHARTREUSE}-j|--jobs N${NC}          Parallel make jobs (default: auto-detected)"
@@ -66,7 +67,7 @@ setup_toolchain_dir
 
 # ── Build Logic ───────────────────────────────────────────────────────────────
 
-if [[ "$COMPILER_TYPE" == "gcc" ]]; then
+if [[ "$COMPILER_BIN" == "gcc" ]]; then
   MAKEFILE="Makefile-Linux-GCC-64.mak"
 else
   MAKEFILE="Makefile-Linux-Clang.mak"
@@ -104,7 +105,7 @@ build_arch() {
 
     # 4. Compiler Path Setup
     local bin_dir="$extract_path/bin"
-    local cc_bin="$bin_dir/${triple}-${COMPILER_TYPE}"
+    local cc_bin="$bin_dir/${triple}-${COMPILER_BIN}"
     local strip_bin="$bin_dir/${triple}-strip"
 
     # 5. Prep Work Dir

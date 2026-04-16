@@ -32,8 +32,9 @@ show_help() {
     echo -e "${LEMON}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${NEONGREEN}--gcc${NC}             Use GCC toolchains (default)"
+    echo -e "  ${NEONGREEN}--gcc${NC}             Use GCC toolchains (musl, default)"
     echo -e "  ${NEONGREEN}--clang${NC}           Use Clang toolchains"
+    echo -e "  ${NEONGREEN}--gnu${NC}             Use GNU GCC toolchains (glibc)"
     echo -e "  ${NEONGREEN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${NEONGREEN}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${NEONGREEN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
@@ -99,10 +100,10 @@ build_arch() {
 
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
-    local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
+    local cc="$bin_dir/${triple}-${COMPILER_BIN}"
     # GCC uses g++, Clang uses clang++
     local cxx_name="clang++"
-    [[ "$COMPILER_TYPE" == "gcc" ]] && cxx_name="g++"
+    [[ "$COMPILER_BIN" == "gcc" ]] && cxx_name="g++"
     local cxx="$bin_dir/${triple}-$cxx_name"
     local strip="$bin_dir/${triple}-strip"
 
@@ -126,7 +127,7 @@ build_arch() {
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_COLOR_MAKEFILE=ON \
         -DCMAKE_C_FLAGS="${CFLAGS} -fPIC" \
-        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC$([[ "$COMPILER_TYPE" == "gcc" ]] && echo " -Wno-stringop-overflow")" \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC$([[ "$COMPILER_BIN" == "gcc" ]] && echo " -Wno-stringop-overflow")" \
         -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
             echo -e "${NEONRED}CMake configure FAILED❗ Check $log_file${NC}"; return 1;
         }
