@@ -33,8 +33,9 @@ show_help() {
     echo -e "${HOTPINK}Usage:${NC} $0 [OPTIONS]"
     echo ""
     echo -e "${BWHITE}Options:${NC}"
-    echo -e "  ${HELIOTROPE}--gcc${NC}             Use GCC toolchains (default)"
+    echo -e "  ${HELIOTROPE}--gcc${NC}             Use GCC toolchains (musl, default)"
     echo -e "  ${HELIOTROPE}--clang${NC}           Use Clang toolchains"
+    echo -e "  ${HELIOTROPE}--gnu${NC}             Use GNU GCC toolchains (glibc)"
     echo -e "  ${HELIOTROPE}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${HELIOTROPE}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${HELIOTROPE}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
@@ -98,10 +99,10 @@ build_arch() {
 
     # 4. Toolchain Path Setup
     local bin_dir="$extract_path/bin"
-    local cc="$bin_dir/${triple}-${COMPILER_TYPE}"
+    local cc="$bin_dir/${triple}-${COMPILER_BIN}"
     # GCC uses g++, Clang uses clang++
     local cxx_name="clang++"
-    [[ "$COMPILER_TYPE" == "gcc" ]] && cxx_name="g++"
+    [[ "$COMPILER_BIN" == "gcc" ]] && cxx_name="g++"
     local cxx="$bin_dir/${triple}-$cxx_name"
     local strip="$bin_dir/${triple}-strip"
 

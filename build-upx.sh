@@ -54,6 +54,48 @@ declare_arch_info() {
       [s390x]="s390x-ibm-linux-musl:s390x"
       [sh4]="sh4-multilib-linux-musl:sh4"
       [x86_64]="x86_64-unknown-linux-musl:x86_64")
+  elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
+    declare -gA ARCH_INFO=(
+      [arm]="arm-unknown-linux-gnueabi:arm"
+      [armhf]="arm-unknown-linux-gnueabihf:arm"
+      [armv4t]="armv4t-unknown-linux-gnueabi:arm"
+      [armv5]="armv5-unknown-linux-gnueabi:armv5"
+      [armv6]="armv6-unknown-linux-gnueabi:arm"
+      [armv6hf]="armv6-unknown-linux-gnueabihf:arm"
+      [armv7]="armv7-unknown-linux-gnueabi:armv7"
+      [armv7hf]="armv7-unknown-linux-gnueabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-gnu:aarch64"
+      [alphaev56]="alphaev56-unknown-linux-gnu:alpha"
+      [alphaev67]="alphaev67-unknown-linux-gnu:alpha"
+      [hppa]="hppa-unknown-linux-gnu:hppa"
+      [i486]="i486-unknown-linux-gnu:i486"
+      [i586]="i586-unknown-linux-gnu:i586"
+      [i686]="i686-unknown-linux-gnu:i686"
+      [loongarch64]="loongarch64-unknown-linux-gnu:loongarch64"
+      [m68k]="m68k-unknown-linux-gnu:m68k"
+      [microblaze]="microblaze-xilinx-linux-gnu:microblaze"
+      [microblazeel]="microblazeel-xilinx-linux-gnu:microblazeel"
+      [mips]="mips-unknown-linux-gnu:mips"
+      [mips-sf]="mips-unknown-linux-gnusf:mips"
+      [mips64]="mips64-unknown-linux-gnu:mips64"
+      [mips64el]="mips64el-unknown-linux-gnu:mips64el"
+      [mipsel]="mipsel-unknown-linux-gnu:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-gnusf:mipsel"
+      [or1k]="or1k-unknown-linux-gnu:or1k"
+      [powerpc]="powerpc-unknown-linux-gnu:powerpc"
+      [powerpc-sf]="powerpc-unknown-linux-gnusf:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-gnu:powerpcle"
+      [powerpcle-sf]="powerpcle-unknown-linux-gnusf:powerpcle"
+      [powerpc64]="powerpc64-unknown-linux-gnu:ppc64"
+      [powerpc64le]="powerpc64le-unknown-linux-gnu:ppc64le"
+      [riscv32]="riscv32-unknown-linux-gnu:riscv32"
+      [riscv64]="riscv64-unknown-linux-gnu:riscv64"
+      [s390]="s390-ibm-linux-gnu:s390"
+      [s390x]="s390x-ibm-linux-gnu:s390x"
+      [sh4]="sh4-multilib-linux-gnu:sh4"
+      [sparc]="sparc-unknown-linux-gnu:sparc"
+      [sparc64]="sparc64-unknown-linux-gnu:sparc64"
+      [x86_64]="x86_64-unknown-linux-gnu:x86_64")
   else
     declare -gA ARCH_INFO=(
       [arm]="arm-unknown-linux-musleabi:arm"
@@ -232,8 +274,8 @@ build_arch() {
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_SYSTEM_NAME=Linux \
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
-        -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_TYPE}" \
-        -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_TYPE" == "gcc" ]] && echo "g++" || echo "clang++")" \
+        -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_BIN}" \
+        -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_BIN" == "gcc" ]] && echo "g++" || echo "clang++")" \
         -DCMAKE_C_FLAGS="${arch_cflags}" \
         -DCMAKE_CXX_FLAGS="${arch_cxxflags}" \
         -DCMAKE_EXE_LINKER_FLAGS="-static ${arch_ldflags}" \
@@ -272,14 +314,15 @@ show_help() {
     echo -e "  $0 [OPTIONS] [COMMANDS]"
     echo ""
     echo -e "${BWHITE}OPTIONS:${NC}"
-    echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains (default)"
+    echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains (musl, default)"
     echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains"
+    echo -e "  ${NEONBLUE}--gnu${NC}               Use GNU GCC toolchains (glibc)"
     echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
     echo -e "  ${NEONBLUE}-C|--clean${NC}          Wipe builds and source"
     echo -e "  ${NEONBLUE}--list-archs${NC}        Print all available target architectures"
-    echo -e "                       (Use with --gcc or --clang)"
+    echo -e "                       (Use with --gcc, --clang, or --gnu)"
     echo ""
     echo -e "${BWHITE}COMMANDS:${NC}"
     echo -e "  ${NEONPURPLE}list${NC}                Display all built binaries and sizes"
@@ -308,6 +351,7 @@ for _arg in "$@"; do
     case "$_arg" in
         --gcc)   set_compiler gcc ;;
         --clang) set_compiler clang ;;
+        --gnu)   set_compiler gnu ;;
     esac
 done
 
