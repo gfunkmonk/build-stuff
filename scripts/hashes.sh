@@ -10,7 +10,7 @@ if [[ ($@ == "--help") || $@ == "-h" ]]; then
 	exit 0
 fi
 
-if [ "$1" = "gcc" ]; then REPO="musl-cross"; elif [ "$1" = "clang" ]; then REPO="clang-cross"; fi
+if [ "$1" = "gcc" ]; then REPO="musl-cross"; elif [ "$1" = "clang" ]; then REPO="clang-cross"; elif [ "$1" = "gnu" ]; then REPO="gnu-cross"; fi
 
 curl -s "https://api.github.com/repos/gfunkmonk/$REPO/releases/tags/$2" \
     | jq -r '.body' \

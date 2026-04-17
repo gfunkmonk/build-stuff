@@ -172,7 +172,7 @@ CXXFLAGS="-Os"
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/ladder"
 CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/garlicbread"
 GNU_RELEASE_BASE="https://github.com/gfunkmonk/gnu-cross/releases/download/onelittleendian"
-RELEASE_BASE="$CLANG_RELEASE_BASE"
+RELEASE_BASE="$GCC_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
 
@@ -464,6 +464,10 @@ verify_binary_arch() {
         m68k)                 expected="Motorola m68k" ;;
         sh4)                  expected="Renesas / SuperH SH" ;;
         or1k)                 expected="OpenRISC" ;;
+        sparc)		expected="Sparc v8" ;;
+        sparc64)              expected="Sparc v9" ;;
+        hppa)                 expected="HPPA" ;;
+        alpha*)               expected="Advanced Micro Devices X86-64" ;;
         *)
             echo -e "${SLATE}  (no arch mapping for '$arch' — skipping verification)${NC}"
             return 0 ;;

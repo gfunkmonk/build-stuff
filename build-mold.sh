@@ -19,13 +19,25 @@ GIT_C="${SKY}"
 GIT_C2="${HIGHLIGHTER}"
 
 # ── Architecture Table ────────────────────────────────────────────────────────
-declare -A ARCH_INFO=(
-  [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz:x86_64"
-  [x86]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz:i686"
-  [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz:aarch64"
-  [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz:arm"
-  [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz:arm"
-)
+declare_arch_info() {
+  if [[ "$COMPILER_TYPE" == "gnu" ]]; then
+    declare -gA ARCH_INFO=(
+      [x86_64]="x86_64-unknown-linux-gnu:x86_64-unknown-linux-gnu.tar.xz"
+      [x86]="i686-unknown-linux-gnu:i686-unknown-linux-gnu.tar.xz"
+      [aarch64]="aarch64-unknown-linux-gnu:aarch64-unknown-linux-gnu.tar.xz"
+      [armv7]="armv7-unknown-linux-gnueabihf:armv7-unknown-linux-gnueabihf.tar.xz"
+      [armhf]="arm-unknown-linux-gnueabihf:arm-unknown-linux-gnueabihf.tar.xz"
+    )
+  else
+    declare -gA ARCH_INFO=(
+      [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
+      [x86]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz"
+      [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz"
+      [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz"
+    )
+  fi
+}
 
 # ── Usage ─────────────────────────────────────────────────────────────────────
 show_help() {
@@ -48,6 +60,16 @@ show_help() {
 }
 
 # ── CLI Parsing ───────────────────────────────────────────────────────────────
+# Pre-scan to detect compiler type before populating ARCH_INFO
+for _arg in "$@"; do
+    case "$_arg" in
+        --gcc)   set_compiler gcc ;;
+        --clang) set_compiler clang ;;
+        --gnu)   set_compiler gnu ;;
+    esac
+done
+declare_arch_info
+
 while [[ $# -gt 0 ]]; do
     if parse_common_flag "$@"; then
         shift "$COMMON_SHIFT"

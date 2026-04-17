@@ -265,6 +265,9 @@ build_arch() {
 	fi
     elif [[ "$arch_key" == "loongarch64" ]]; then
 	arch_ldflags="-Wl,--strip-debug"
+    elif [[ "$arch_key" == alphaev* ]]; then
+	arch_cflags="$CFLAGS -fno-stack-protector"
+	arch_cxxflags="$CXXFLAGS -fno-stack-protector"
     fi
 
     # 4. Compile with Error Logging
