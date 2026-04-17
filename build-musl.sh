@@ -199,7 +199,7 @@ build_arch() {
     elif [[ "$arch_key" == alphaev* ]]; then
         arch_cflags="$CFLAGS -fno-stack-protector"
         arch_cxxflags="$CXXFLAGS -fno-stack-protector"
-    elif [[ "$arch_key" == sparc || "$arch_key" == powerpc || "$arch_key" == "powerpc-sf" || "$arch_key" == powerpcle || "$arch_key" == "powerpcle-sf" || "$arch_key" == "alphaev56" || "$arch_key" == "alphaev67" || "$arch_key" == "alpha" ]]; then
+    elif [[ "$arch_key" == powerpc || "$arch_key" == "powerpc-sf" || "$arch_key" == powerpcle || "$arch_key" == "powerpcle-sf" || "$arch_key" == "alphaev56" || "$arch_key" == "alphaev67" || "$arch_key" == "alpha" ]]; then
         arch_cflags="$CFLAGS -mlong-double-64"
         arch_cxxflags="$CXXFLAGS -mlong-double-64"
     elif [[ "$arch_key" == s390 || "$arch_key" == s390x ]]; then
