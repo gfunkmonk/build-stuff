@@ -250,9 +250,10 @@ build_arch() {
     if [[ "$COMPILER_TYPE" == "clang" ]]; then
       pushd "$SOURCE_DIR" >/dev/null
 
-      if [[ "$triple" == *"or1k"* || "$triple" == *"m68k"* || "$triple" == *"sh4"* ]]; then
+      if [[ "$triple" == *"or1k"* || "$triple" == *"sh4"* ]]; then
           echo "==> Applying architecture specific patches..."
           sed -i 's/static_assert/ //g' src/p_lx_elf.cpp 2>/dev/null || true
+          COMPILER_BIN="gcc"
       fi
       popd >/dev/null
 
@@ -442,5 +443,7 @@ fi
 echo -e "${SLATE}Queueing ${BWHITE}$(echo $ARCHS | wc -w)${NC} targets...\n"
 
 build_all_archs
+
+check_static
 
 final

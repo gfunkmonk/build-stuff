@@ -205,4 +205,6 @@ git_clone
 
 build_all_archs
 
+check_static
+
 final

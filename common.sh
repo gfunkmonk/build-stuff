@@ -493,7 +493,11 @@ git_clone() {
         git clone --branch "$REPO_BRANCH" --recursive --depth 1 "$REPO_URL" "$SOURCE_DIR" > /dev/null 2>&1
     else
         echo -e "${CORAL}🍔 Source code present.${NC}"
-        git -C "$SOURCE_DIR" pull origin "$REPO_BRANCH" > /dev/null 2>&1
+        #git -C "$SOURCE_DIR" pull origin "$REPO_BRANCH" > /dev/null 2>&1
+        pushd "$SOURCE_DIR" >/dev/null
+        git fetch --all && git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
+        git submodule update --init --recursive
+        popd >/dev/null
     fi
 }
 
@@ -502,4 +506,10 @@ final() {
     echo -e "\n${FINAL_C}🎇 All requested architectures are finished!${NC}"
     echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${OUTPUT_DIR}${NC}"
     ls -F --color=auto "$OUTPUT_DIR"
+}
+
+check_static() {
+    if readelf -l "$1" | grep -q "program interpreter"; then
+        echo -e "${NEONRED}⚠️  Warning: Binary is dynamically linked!${NC}"
+    fi
 }

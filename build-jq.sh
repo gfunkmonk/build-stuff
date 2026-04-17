@@ -193,4 +193,6 @@ git_clone
 # Run targets
 build_all_archs
 
+check_static
+
 final
