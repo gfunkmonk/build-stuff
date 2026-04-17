@@ -185,22 +185,22 @@ build_arch() {
     local arch_cflags="$CFLAGS"
     local arch_cxxflags="$CXXFLAGS"
     local arch_ldflags=""
-    #if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
-    #    if [[ "$COMPILER_TYPE" == "clang" ]]; then
-    #            arch_ldflags="-Wl,--defsym=_restfpr_31=main"
-    #    else
-    #            arch_cflags="$CFLAGS -mno-save-fpr -mlong-double-64"
-    #            arch_cxxflags="$CXXFLAGS -mno-save-fpr -mlong-double-64"
-    #    fi
-    #elif [[ "$arch_key" == "loongarch64" ]]; then
-    #    arch_ldflags="-Wl,--strip-debug"
-    #elif [[ "$arch_key" == alphaev* ]]; then
-    #    arch_cflags="$CFLAGS -fno-stack-protector"
-    #    arch_cxxflags="$CXXFLAGS -fno-stack-protector"
-    #elif [[ "$arch_key" == sparc ]]; then
-    #    arch_cflags="$CFLAGS -mlong-double-64"
-    #    arch_cxxflags="$CXXFLAGS -mlong-double-64"
-    #fi
+    if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
+        if [[ "$COMPILER_TYPE" == "clang" ]]; then
+                arch_ldflags="-Wl,--defsym=_restfpr_31=main"
+        else
+                arch_cflags="$CFLAGS -mno-save-fpr"
+                arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+        fi
+    elif [[ "$arch_key" == "loongarch64" ]]; then
+        arch_ldflags="-Wl,--strip-debug"
+    elif [[ "$arch_key" == alphaev* ]]; then
+        arch_cflags="$CFLAGS -fno-stack-protector"
+        arch_cxxflags="$CXXFLAGS -fno-stack-protector"
+    elif [[ "$arch_key" == sparc ]]; then
+        arch_cflags="$CFLAGS -mlong-double-64"
+        arch_cxxflags="$CXXFLAGS -mlong-double-64"
+    fi
     echo -n -e "${SLATE}==>${NC} Configuring musl... "
     if (cd "$bdir" && "$SOURCE_DIR/configure" \
             --target="$triple" \
