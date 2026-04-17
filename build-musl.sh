@@ -64,9 +64,9 @@ declare_arch_info() {
       [armv7hf]="armv7-unknown-linux-gnueabihf"
       [aarch64]="aarch64-unknown-linux-gnu"
       [aarch64_be]="aarch64_be-unknown-linux-gnu"
-      [alphaev56]="alphaev56-unknown-linux-gnu"
-      [alphaev67]="alphaev67-unknown-linux-gnu"
-      [hppa]="hppa-unknown-linux-gnu"
+      #[alphaev56]="alphaev56-unknown-linux-gnu"
+      #[alphaev67]="alphaev67-unknown-linux-gnu"
+      #[hppa]="hppa-unknown-linux-gnu"
       [i486]="i486-unknown-linux-gnu"
       [i586]="i586-unknown-linux-gnu"
       [i686]="i686-unknown-linux-gnu"
@@ -181,6 +181,26 @@ build_arch() {
     local bin_dir="$extract_path/bin"
     rm -rf "$bdir" && mkdir -p "$bdir" "$install_dir"
     # 4. Configure (out-of-tree)
+    # Per-arch compiler flag adjustments
+    local arch_cflags="$CFLAGS"
+    local arch_cxxflags="$CXXFLAGS"
+    local arch_ldflags=""
+    #if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
+    #    if [[ "$COMPILER_TYPE" == "clang" ]]; then
+    #            arch_ldflags="-Wl,--defsym=_restfpr_31=main"
+    #    else
+    #            arch_cflags="$CFLAGS -mno-save-fpr -mlong-double-64"
+    #            arch_cxxflags="$CXXFLAGS -mno-save-fpr -mlong-double-64"
+    #    fi
+    #elif [[ "$arch_key" == "loongarch64" ]]; then
+    #    arch_ldflags="-Wl,--strip-debug"
+    #elif [[ "$arch_key" == alphaev* ]]; then
+    #    arch_cflags="$CFLAGS -fno-stack-protector"
+    #    arch_cxxflags="$CXXFLAGS -fno-stack-protector"
+    #elif [[ "$arch_key" == sparc ]]; then
+    #    arch_cflags="$CFLAGS -mlong-double-64"
+    #    arch_cxxflags="$CXXFLAGS -mlong-double-64"
+    #fi
     echo -n -e "${SLATE}==>${NC} Configuring musl... "
     if (cd "$bdir" && "$SOURCE_DIR/configure" \
             --target="$triple" \
@@ -190,7 +210,9 @@ build_arch() {
             --enable-static \
             CC="$bin_dir/${triple}-${COMPILER_BIN}" \
             CROSS_COMPILE="$bin_dir/${triple}-" \
-            CFLAGS="${CFLAGS}" \
+            CFLAGS="${arch_cflags}" \
+            CXXFLAGS="${arch_cxxflags}" \
+            LDFLAGS="${arch_ldflags}" \
         ) > "$log_file" 2>&1; then
         echo -e "${NEONGREEN}Done${NC}"
     else
