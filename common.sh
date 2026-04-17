@@ -124,6 +124,7 @@ declare -A HASHES_GNU=(
 
 declare -A HASHES_CLANG=(
   [aarch64-unknown-linux-musl.tar.xz]="b6f240e581187cc712738a980c8f8d670b1ce7692f606f183905e5fe6ccd4401"
+  [aarch64_be-unknown-linux-musl.tar.xz]="3b5568085df4b32326405452c1a1d76466ffc1c1a9d5c1aa1f3396452a1a6756"
   [arm-unknown-linux-musleabi.tar.xz]="63aa4e63b4b8a5ab445072951bc9229d4fa7d8e0345b99998e6adf395f527398"
   [arm-unknown-linux-musleabihf.tar.xz]="41fc81ecbb845dcabea337da507fe861251ddac7e4058370d4baa19cb090a04d"
   [armv5-unknown-linux-musleabi.tar.xz]="172dbca74ee0c683282a813f9717d80d29d0b84b49b47e6a43fcb5623602a8d9"
@@ -136,14 +137,14 @@ declare -A HASHES_CLANG=(
   [i586-unknown-linux-musl.tar.xz]="0715daf4cfa633b0428635fae38f11d0f5b94dfba62136c60236146d40582c9a"
   [i686-unknown-linux-musl.tar.xz]="5b7758c4421c60d984cb797ceb4a078115a14219ad04912d26b144b4a4c8e952"
   [loongarch64-unknown-linux-musl.tar.xz]="01bd0dd1111f3e9e701f7323635b1ac3ca5606b3c18c7a1f04a152980dd27185"
-  [m68k-unknown-linux-musl.tar.xz]="c136da3e31272a765d67153023e67dcbb9bd9b964af9613f3f3d0f6bdb52f8fc"
+  [m68k-unknown-linux-musl.tar.xz]="028b716edd5e0a7225fa8dd9130325f9e50479e57f20be040f20ba895d57be06"
   [mips-unknown-linux-musl.tar.xz]="ea5e097fa20ba99b12a6f3ce9c5e22412d6e7668c2dad6ba21b26b2507464b0a"
   [mips-unknown-linux-muslsf.tar.xz]="43c2110ab221bf5628a0a2d3a3b7bdea33f4494a24520e4b9bb7307008c89b3e"
   [mips64-unknown-linux-musl.tar.xz]="b30f6940ca17900445ca8dc5ace57d82c9c125a974cfc6669901f89789113431"
   [mips64el-unknown-linux-musl.tar.xz]="3c4fec5d0fd432c5900c1e6a37268a8d7c7fd35905c97bd77d6488880bd69220"
   [mipsel-unknown-linux-musl.tar.xz]="11a1e0db11df9602ff6a43d681c96c289f55471c6e3eca25bffffdbeed08db91"
   [mipsel-unknown-linux-muslsf.tar.xz]="880c2bdb3512b8747840340f56abbb16559fe1dc1c20d88f16101e847700c1a8"
-  [or1k-unknown-linux-musl.tar.xz]="80986f1ca50ff3f16a56e58f66327e4eea5e3f842cc22c4bee281f973b975163"
+  [or1k-unknown-linux-musl.tar.xz]="849ad23a8320717e0e542608f9c60c109899e1f3970d73c7bcae68242b59ed1f"
   [powerpc-unknown-linux-musl.tar.xz]="43750959cdb6f80cd144ad052668ed7168d8eccc58b9d8aaa8e75384b52d4e78"
   [powerpc-unknown-linux-muslsf.tar.xz]="d1bb2cc1b41ffc73624196d8cbbb7501c817235c550116ce039e0283c8af5c20"
   [powerpc64-unknown-linux-musl.tar.xz]="19e353a7d2ff08bab2cbb8c8c8a41d4a309edcbb17d3024b1dd0851bb346c087"
@@ -153,7 +154,7 @@ declare -A HASHES_CLANG=(
   [riscv32-unknown-linux-musl.tar.xz]="7550f8e15151e2a45077a73112ad6f1777999b308541c569a37c9850e6e9fab2"
   [riscv64-unknown-linux-musl.tar.xz]="8240bf30f676b92d5b2348e7f0a75d0edf1882307130561d32b6e366d0d67302"
   [s390x-ibm-linux-musl.tar.xz]="ce5e9f795252bf7b12a5f51a89b62e1b6082174431f4436d920e03c2c99dd657"
-  [sh4-multilib-linux-musl.tar.xz]="8d1c7e418c4d6f042da1ea43df72a2f2635a9a213aa490dda88e8054ac7c793d"
+  [sh4-multilib-linux-musl.tar.xz]="679e576c0d512e04f6fd5042b20899e0c0e107e8e3c8ec6a36bf346d0fb374af"
   [x86_64-unknown-linux-musl.tar.xz]="9c8973283a3b052de2781a92c8299ef1c1ed4a168821b1b456cd6cfb6dcd0924"
 )
 
@@ -172,7 +173,7 @@ CXXFLAGS="-Os"
 
 # ── Toolchain Release URLs ────────────────────────────────────────────────────
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/farmer"
-CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/garlicbread"
+CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/breadstick"
 GNU_RELEASE_BASE="https://github.com/gfunkmonk/gnu-cross/releases/download/twolittleendian"
 RELEASE_BASE="$GCC_RELEASE_BASE"
 

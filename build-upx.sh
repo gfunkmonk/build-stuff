@@ -244,6 +244,21 @@ build_arch() {
     local bdir="$BUILD_BASE/$arch_key"
     rm -rf "$bdir" && mkdir -p "$bdir"
 
+    export PATH="$bin_dir:$PATH"
+
+    # Patch for or1k/m68k if needed (Localize to this build)
+    if [[ "$COMPILER_TYPE" == "clang" ]]; then
+      pushd "$SOURCE_DIR" >/dev/null
+
+      if [[ "$triple" == *"or1k"* || "$triple" == *"m68k"* || "$triple" == *"sh4"* ]]; then
+          echo "==> Applying architecture specific patches..."
+          sed -i 's/static_assert/ //g' src/p_lx_elf.cpp 2>/dev/null || true
+      fi
+      popd >/dev/null
+
+      pushd "$bdir" >/dev/null
+    fi
+
     # 3.5 The "Motorola 68000" Survival Kit
     if [[ "$arch_key" == "m68k" ]]; then
       echo -e "${OCHRE}==>${NC} Patching m68k alignment landmines... "
@@ -267,6 +282,8 @@ build_arch() {
 	fi
     elif [[ "$arch_key" == "loongarch64" ]]; then
 	arch_ldflags="-Wl,--strip-debug"
+    elif [[ "$arch_key" == "m68k" ]]; then
+	arch_ldflags="-fuse-ld=$bin_dir/ld.lld"
     elif [[ "$arch_key" == alphaev* ]]; then
 	arch_cflags="$CFLAGS -fno-stack-protector"
 	arch_cxxflags="$CXXFLAGS -fno-stack-protector"
