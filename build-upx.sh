@@ -30,6 +30,7 @@ declare_arch_info() {
       [armv7]="armv7-unknown-linux-musleabi:armv7"
       [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
       [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [aarch64_be]="aarch64_be-unknown-linux-musl:aarch64_be"
       [i386]="i386-unknown-linux-musl:i386"
       [i486]="i486-unknown-linux-musl:i486"
       [i586]="i586-unknown-linux-musl:i586"
@@ -65,6 +66,7 @@ declare_arch_info() {
       [armv7]="armv7-unknown-linux-gnueabi:armv7"
       [armv7hf]="armv7-unknown-linux-gnueabihf:armv7"
       [aarch64]="aarch64-unknown-linux-gnu:aarch64"
+      [aarch64_be]="aarch64_be-unknown-linux-gnu:aarch64_be"
       [alphaev56]="alphaev56-unknown-linux-gnu:alpha"
       [alphaev67]="alphaev67-unknown-linux-gnu:alpha"
       [hppa]="hppa-unknown-linux-gnu:hppa"
@@ -284,6 +286,10 @@ build_arch() {
         -DCMAKE_EXE_LINKER_FLAGS="-static ${arch_ldflags}" \
         -DUPX_CONFIG_DISABLE_GITREV=ON \
         -DUPX_CONFIG_IGNORE_TYPES_ABI=ON \
+        -DUPX_CONFIG_DISABLE_WERROR=ON \
+        -DUSE_STRICT_DEFAULTS=false \
+        -DUPX_CONFIG_DISABLE_GITREV=ON \
+        -DUPX_CONFIG_DISABLE_WSTRICT=ON \
         > "$log_file" 2>&1; then
         echo -e "${NEONGREEN}Done${NC}"
     else
@@ -291,6 +297,15 @@ build_arch() {
         echo -e "${OCHRE}Check $log_file for details.${NC}"
         return 1
     fi
+
+
+    #sed -i 's|define UPX_VERSION_HEX      0x050...|define UPX_VERSION_HEX      0x000101|g' $SOURCE_DIR/src/version.h
+    #sed -i 's|05.01...|00.01.01|g' $SOURCE_DIR/src/version.h
+    #sed -i 's|"5...."|"0.1.1"|g' $SOURCE_DIR/src/version.h
+    #sed -i 's|"5..."|"0.11"|g' $SOURCE_DIR/src/version.h
+    sed -i "s/UPX_VERSION_DATE     \".*\"/UPX_VERSION_DATE     \"$(date +"%b %-d, %Y" | sed 's/\(1[0-9]\),/\1th,/;s/1,/1st,/;s/2,/2nd,/;s/3,/3rd,/;s/\([0-9]\),/\1th,/g' | sed 's/,//g')\"/g" $SOURCE_DIR/src/version.h
+    sed -i "s/UPX_VERSION_DATE_ISO \".*\"/UPX_VERSION_DATE_ISO \"$(date '+%Y-%m-%d')\"/g" $SOURCE_DIR/src/version.h
+    #sed -i 's%UPX_VERSION_STRING "5.1.."%UPX_VERSION_STRING "0.1.1"%g' $SOURCE_DIR/CMakeLists.txt
     echo -n -e "${SLATE}==>${NC} Compiling ($JOBS jobs): ${AQUA}[  0%]${NC}"
     cmake --build "$bdir" --target upx -j "$JOBS" > "$log_file" 2>&1 &
     track_progress $! "$log_file" "cmake" 100 "${SKY}"
