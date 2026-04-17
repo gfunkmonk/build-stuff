@@ -89,8 +89,8 @@ declare_arch_info() {
       [powerpc64le]="powerpc64le-unknown-linux-gnu"
       [riscv32]="riscv32-unknown-linux-gnu"
       [riscv64]="riscv64-unknown-linux-gnu"
-      [s390]="s390-ibm-linux-gnu"
-      [s390x]="s390x-ibm-linux-gnu"
+      #[s390]="s390-ibm-linux-gnu"
+      #[s390x]="s390x-ibm-linux-gnu"
       [sh4]="sh4-multilib-linux-gnu"
       [sparc]="sparc-unknown-linux-gnu"
       [sparc64]="sparc64-unknown-linux-gnu"
@@ -189,21 +189,34 @@ build_arch() {
         if [[ "$COMPILER_TYPE" == "clang" ]]; then
                 arch_ldflags="-Wl,--defsym=_restfpr_31=main"
         else
-                arch_cflags="$CFLAGS -mno-save-fpr"
-                arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+                #arch_cflags="$CFLAGS -mno-save-fpr"
+                #arch_cxxflags="$CXXFLAGS -mno-save-fpr"
+                arch_cflags="$CFLAGS -mlong-double-64"
+                arch_cxxflags="$CXXFLAGS -mlong-double-64"
         fi
     elif [[ "$arch_key" == "loongarch64" ]]; then
         arch_ldflags="-Wl,--strip-debug"
     elif [[ "$arch_key" == alphaev* ]]; then
         arch_cflags="$CFLAGS -fno-stack-protector"
         arch_cxxflags="$CXXFLAGS -fno-stack-protector"
-    elif [[ "$arch_key" == sparc ]]; then
+    elif [[ "$arch_key" == sparc || "$arch_key" == powerpc || "$arch_key" == "powerpc-sf" || "$arch_key" == powerpcle || "$arch_key" == "powerpcle-sf" || "$arch_key" == "alphaev56" || "$arch_key" == "alphaev67" || "$arch_key" == "alpha" ]]; then
         arch_cflags="$CFLAGS -mlong-double-64"
         arch_cxxflags="$CXXFLAGS -mlong-double-64"
+    elif [[ "$arch_key" == s390 || "$arch_key" == s390x ]]; then
+        arch_cflags="$CFLAGS -mlong-double-128"
+        arch_cxxflags="$CXXFLAGS -mlong-double-128"
+    elif [[ "$arch_key" == s390x ]]; then
+        arch_cflags="$CFLAGS -march=z9-ec"
+        arch_cxxflags="$CXXFLAGS -march=z9-ec"
+    fi
+    # musl configure only recognises the base CPU name for some arches
+    local musl_target="$triple"
+    if [[ "$arch_key" == alphaev* ]]; then
+        musl_target="alpha-unknown-linux-gnu"
     fi
     echo -n -e "${SLATE}==>${NC} Configuring musl... "
     if (cd "$bdir" && "$SOURCE_DIR/configure" \
-            --target="$triple" \
+            --target="$musl_target" \
             --prefix="$install_dir" \
             --syslibdir="$install_dir/lib" \
             --disable-shared \
