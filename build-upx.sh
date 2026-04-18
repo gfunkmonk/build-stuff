@@ -100,6 +100,8 @@ declare_arch_info() {
       [x86_64]="x86_64-unknown-linux-gnu:x86_64")
   else
     declare -gA ARCH_INFO=(
+      [aarch64]="aarch64-unknown-linux-musl:aarch64"
+      [aarch64_be]="aarch64_be-unknown-linux-musl:aarch64_be"
       [arm]="arm-unknown-linux-musleabi:arm"
       [armhf]="arm-unknown-linux-musleabihf:arm"
       [armv5]="armv5-unknown-linux-musleabi:armv5"
@@ -107,13 +109,14 @@ declare_arch_info() {
       [armv6hf]="armv6-unknown-linux-musleabihf:armv6"
       [armv7]="armv7-unknown-linux-musleabi:armv7"
       [armv7hf]="armv7-unknown-linux-musleabihf:armv7"
-      [aarch64]="aarch64-unknown-linux-musl:aarch64"
       [i386]="i386-unknown-linux-musl:i386"
       [i486]="i486-unknown-linux-musl:i486"
       [i586]="i586-unknown-linux-musl:i586"
       [i686]="i686-unknown-linux-musl:i686"
       [loongarch64]="loongarch64-unknown-linux-musl:loongarch64"
       [m68k]="m68k-unknown-linux-musl:m68k"
+      [microblaze]="microblaze-xilinx-linux-musl:microblaze"
+      [microblazeel]="microblazeel-xilinx-linux-musl:microblazeel"
       [mips]="mips-unknown-linux-musl:mips"
       [mips-sf]="mips-unknown-linux-muslsf:mips"
       [mips64]="mips64-unknown-linux-musl:mips64"
