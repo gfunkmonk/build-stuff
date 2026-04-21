@@ -182,20 +182,29 @@ test_binary() {
     # Determine emulation requirement
     local qemu_bin=""
     case "$bin_name" in
-        *aarch64*)     qemu_bin="qemu-aarch64-static" ;;
-        *armv[5-7]*|*arm-*) qemu_bin="qemu-arm-static" ;;
-        *riscv64*)     qemu_bin="qemu-riscv64-static" ;;
-        *riscv32*)     qemu_bin="qemu-riscv32-static" ;;
-        *mips64el*)    qemu_bin="qemu-mips64el-static" ;;
-        *mips64*)      qemu_bin="qemu-mips64-static" ;;
-        *mipsel*)      qemu_bin="qemu-mipsel-static" ;;
-        *mips*)        qemu_bin="qemu-mips-static" ;;
-        *ppc64le*)     qemu_bin="qemu-ppc64le-static" ;;
-        *ppc64*)       qemu_bin="qemu-ppc64-static" ;;
-        *s390x*)       qemu_bin="qemu-s390x-static" ;;
-        *loongarch64*) qemu_bin="qemu-loongarch64-static" ;;
-        *m68k*)        qemu_bin="qemu-m68k-static" ;;
-        *sh4*)         qemu_bin="qemu-sh4-static" ;;
+        *aarch64_be*)  qemu_bin="qemu-aarch64_be" ;;
+        *aarch64*)     qemu_bin="qemu-aarch64" ;;
+        *armv[5-7]*|*arm-*) qemu_bin="qemu-arm" ;;
+	*alpha*)       qemu_bin="qemu-alpha" ;;
+        *riscv64*)     qemu_bin="qemu-riscv64" ;;
+        *riscv32*)     qemu_bin="qemu-riscv32" ;;
+        *microblazeel*) qemu_bin="qemu-microblazeel" ;;
+        *microblaze*)  qemu_bin="qemu-microblaze" ;;
+        *mips64el*)    qemu_bin="qemu-mips64el" ;;
+        *mips64el*)    qemu_bin="qemu-mips64el" ;;
+        *mips64*)      qemu_bin="qemu-mips64" ;;
+        *mipsel*)      qemu_bin="qemu-mipsel" ;;
+        *mips*)        qemu_bin="qemu-mips" ;;
+        *powerpc64le*) qemu_bin="qemu-ppc64le" ;;
+        *powerpc64*)   qemu_bin="qemu-ppc64" ;;
+        *powerpc*)     qemu_bin="qemu-ppc" ;;
+        *s390x*)       qemu_bin="qemu-s390x" ;;
+        *loongarch64*) qemu_bin="qemu-loongarch64" ;;
+        *m68k*)        qemu_bin="qemu-m68k" ;;
+        *sh4*)         qemu_bin="qemu-sh4" ;;
+        *sparc64*)     qemu_bin="qemu-sparc64" ;;
+        *sparc*)       qemu_bin="qemu-sparc" ;;
+        *hppa*)        qemu_bin="qemu-hppa" ;;
     esac
 
     if [[ -n "$qemu_bin" ]]; then
