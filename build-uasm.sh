@@ -28,6 +28,14 @@ declare_arch_info() {
       [armv7]="armv7-unknown-linux-gnueabihf:armv7-unknown-linux-gnueabihf.tar.xz"
       [armhf]="arm-unknown-linux-gnueabihf:arm-unknown-linux-gnueabihf.tar.xz"
     )
+  elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
+    declare -gA ARCH_INFO=(
+      [x86_64]="x86_64-unknown-linux-uclibc:x86_64-unknown-linux-uclibc.tar.xz"
+      [x86]="i686-unknown-linux-uclibc:i686-unknown-linux-uclibc.tar.xz"
+      [aarch64]="aarch64-unknown-linux-uclibc:aarch64-unknown-linux-uclibc.tar.xz"
+      [armv7]="armv7-unknown-linux-uclibceabihf:armv7-unknown-linux-uclibceabihf.tar.xz"
+      [armhf]="arm-unknown-linux-uclibceabihf:arm-unknown-linux-uclibceabihf.tar.xz"
+    )
   else
     declare -gA ARCH_INFO=(
       [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
@@ -47,6 +55,7 @@ show_help() {
     echo -e "  ${CHARTREUSE}--gcc${NC}                Use GCC toolchains (musl, default)"
     echo -e "  ${CHARTREUSE}--clang${NC}              Use Clang toolchains"
     echo -e "  ${CHARTREUSE}--gnu${NC}                Use GNU GCC toolchains (glibc)"
+    echo -e "  ${CHARTREUSE}--uclibc${NC}                Use GCC toolchains (uClibc-ng)"
     echo -e "  ${CHARTREUSE}-a|--arch \"LIST\"${NC}     Space separated list of arches to build"
     echo -e "  ${CHARTREUSE}-r|--resume${NC}          Skip architectures already found in output/"
     echo -e "  ${CHARTREUSE}-j|--jobs N${NC}          Parallel make jobs (default: auto-detected)"
@@ -67,6 +76,7 @@ for _arg in "$@"; do
         --gcc)   set_compiler gcc ;;
         --clang) set_compiler clang ;;
         --gnu)   set_compiler gnu ;;
+        --uclibc)   set_compiler uclibc ;;
     esac
 done
 declare_arch_info

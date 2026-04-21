@@ -160,6 +160,42 @@ declare -A HASHES_CLANG=(
   [x86_64-unknown-linux-musl.tar.xz]="35407293a387b6e5b17f1f027d6e1a2b6b21c32c8a5e760b4e32a7e0d614df51"
 )
 
+declare -A HASHES_UCLIBC=(
+  [aarch64-unknown-linux-uclibc.tar.xz]="f5fdebc6e516628c3eab0ad24611e4506d1122d51e940573690d033c8392e4e3"
+  [aarch64_be-unknown-linux-uclibc.tar.xz]="4f8f37245fbab0af50b4c84e703763c6850923d2ee38762c7af9fe02cd7d8603"
+  [arm-unknown-linux-uclibcgnueabi.tar.xz]="b711737a71394506f0bd47b49533ff88c2a3add496e70f991d5993db0d55d04f"
+  [arm-unknown-linux-uclibcgnueabihf.tar.xz]="9c0b5f60cfba37d023b64422ecdedf1a7c87fdc17fa9c2641127973b637624c4"
+  [armv4t-unknown-linux-uclibcgnueabi.tar.xz]="cbb00d40efc53def7e2c308d47ad31195f6458b75bf26ce0c2be9096df413c46"
+  [armv5-unknown-linux-uclibcgnueabi.tar.xz]="74b34ebcfa991078e03eae40ced9c1a963d7a15e0fb95743f848d4c30848dc82"
+  [armv6-unknown-linux-uclibcgnueabi.tar.xz]="091c2d57d0e6d68cefa7b63cc6f24c494c43739d0098a53fca824e4e30463537"
+  [armv6-unknown-linux-uclibcgnueabihf.tar.xz]="fb1a44044fbad88e030d506269bd8e2939c0265c25880dbc33b34cf60d3e9203"
+  [armv7-unknown-linux-uclibcgnueabi.tar.xz]="46eebef2ed532532bc0437e2139d7a6157bb8b247a324224aa2f70efc5fe3482"
+  [armv7-unknown-linux-uclibcgnueabihf.tar.xz]="b09451fc4633cfede940da87a4d122be8b6f2933d6f572a933140bbb47f065f1"
+  [hppa-unknown-linux-uclibc.tar.xz]="d298641aed00196f25082081fc38b8ef9581db393bc6ca7f659632dc4411829d"
+  [i486-unknown-linux-uclibc.tar.xz]="29b97b80aac1ae652a24da095e2537012bf57861d47022a76fc5c7008101d0c7"
+  [i586-unknown-linux-uclibc.tar.xz]="d20987ab6cb964bff425aa72ce745b0328523b00f2f0e52fe74381568ae77bef"
+  [i686-unknown-linux-uclibc.tar.xz]="cac7f6720c5fa9ea21ba3a45bf49a0ebb15329bcf6e3d6c561b8fde67a78e97e"
+  [m68k-unknown-linux-uclibc.tar.xz]="d271c21b753c8f65aefcf858c839c768f2200a809f3b7d0f693874111b89373b"
+  [microblaze-xilinx-linux-uclibc.tar.xz]="74a8ec97fbe461b79ca2a8021c1be8c21dc9968830e49edb4ea273e42bfca4de"
+  [microblazeel-xilinx-linux-uclibc.tar.xz]="c2ef799a77e6aa52c5da2653f4918114e34307ab06a98fbc357e005f0382bb9d"
+  [mips-unknown-linux-uclibc.tar.xz]="16103fb3ec6d61258d5355f6b019062e985f59f027de90d4eb4353cac0267aaf"
+  [mips-unknown-linux-uclibcsf.tar.xz]="87be18fdbfbd77ca1d5e6a029994156c23de4a89836d0ac5b4eb801c23d3079a"
+  [mips64-unknown-linux-uclibc.tar.xz]="ddef31ce64e240cbce9d101e7fc143878742b2c312795f8e1ddf2e9b8936d373"
+  [mips64el-unknown-linux-uclibc.tar.xz]="08df02ada2fc56041a25fbde6abe76dd462b138fefabb99956731d7f6fef0433"
+  [mipsel-unknown-linux-uclibc.tar.xz]="73e88b8a9ce140b9be903b051774605775a09c1973dcacf625132573f3958489"
+  [mipsel-unknown-linux-uclibcsf.tar.xz]="daeda192e4f6d13fdf45a5bb90f67b98e1b1c584e3d1701e6f1e025b852505c3"
+  [or1k-unknown-linux-uclibc.tar.xz]="0a1f38cd625b340aa758a66e21f29a2761d3257fdcfc81845e823c53f7de33e9"
+  [powerpc-unknown-linux-uclibc.tar.xz]="a41a2855b44d533c48b54787d414015784db7fbe6b36a9781e8e06ed1053eced"
+  [powerpc-unknown-linux-uclibcsf.tar.xz]="ce838b1e329cb7ab7ed8253925ef2eb04e5668f95ea1b0ff672cde3a0a477358"
+  [powerpcle-unknown-linux-uclibc.tar.xz]="70d5a7455445053759bb35504c43e29d1c0177d9e95bad2fde1ee099b90fac60"
+  [powerpcle-unknown-linux-uclibcsf.tar.xz]="c6f91641e7e72515148968350590f20139c66e1ffaaa5d7dc74c66a71209bd9d"
+  [riscv32-unknown-linux-uclibc.tar.xz]="4c18dc9f71daebb79b71028f7e33d5eddf327309f015f967348ef1e60b55c4f8"
+  [riscv64-unknown-linux-uclibc.tar.xz]="0b6b4bdc3a24b638194c5d0762b33b3aa1054a50ee91d7134ceb8a33dfc1351b"
+  [sh4-multilib-linux-uclibc.tar.xz]="e21f2d662da703bae46a0be2f658629b4ad3a5ab34eb11a8f1a74b92d0dceea4"
+  [sparc-unknown-linux-uclibc.tar.xz]="13bde1e0d05685291a055edbef1aa6c0c760e1ed4daa85803520f0bc7cebbad2"
+  [x86_64-unknown-linux-uclibc.tar.xz]="77ed51a947006bc623d879c5bd0b117fa27664c3945df86b42806fd6c2fd1563"
+)
+
 NAME=$(basename "$0" | cut -d'-' -f2 | cut -d'.' -f1)
 ROOT_DIR="$(pwd)/build/${NAME}"
 SOURCE_DIR="$ROOT_DIR/${NAME}-src"
@@ -177,6 +213,7 @@ CXXFLAGS="-Os"
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/airport"
 CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/croutons"
 GNU_RELEASE_BASE="https://github.com/gfunkmonk/gnu-cross/releases/download/gnutella"
+UCLIBC_RELEASE_BASE="https://github.com/gfunkmonk/uclibc-cross/releases/download/newspaper"
 RELEASE_BASE="$GCC_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
@@ -190,6 +227,9 @@ set_compiler() {
         COMPILER_BIN="gcc"
     elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
         RELEASE_BASE="$GNU_RELEASE_BASE"
+        COMPILER_BIN="gcc"
+    elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
+        RELEASE_BASE="$UCLIBC_RELEASE_BASE"
         COMPILER_BIN="gcc"
     else
         RELEASE_BASE="$CLANG_RELEASE_BASE"
@@ -209,6 +249,7 @@ parse_common_flag() {
         --gcc)       set_compiler gcc;   COMMON_SHIFT=1; return 0 ;;
         --clang)     set_compiler clang; COMMON_SHIFT=1; return 0 ;;
         --gnu)       set_compiler gnu;   COMMON_SHIFT=1; return 0 ;;
+        --uclibc)    set_compiler uclibc;   COMMON_SHIFT=1; return 0 ;;
         -r|--resume) RESUME_MODE=true;   COMMON_SHIFT=1; return 0 ;;
         -j|--jobs)   JOBS="$2";          COMMON_SHIFT=2; return 0 ;;
         -a|--arch)   USER_ARCHS="$2";    COMMON_SHIFT=2; return 0 ;;
@@ -299,6 +340,8 @@ verify_hash() {
         expected="${HASHES_GCC[$tarball]}"
     elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
         expected="${HASHES_GNU[$tarball]}"
+    elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
+        expected="${HASHES_UCLIBC[$tarball]}"
     else
         expected="${HASHES_CLANG[$tarball]}"
     fi

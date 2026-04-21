@@ -164,6 +164,16 @@ verify_static() {
 }
 
 test_binary() {
+for _arg in "$@"; do
+    case "$_arg" in
+        --gcc)   set_compiler gcc ;;
+        --clang) set_compiler clang ;;
+        --gnu)   set_compiler gnu ;;
+    esac
+done
+
+declare_arch_info
+
     local bin_name="$1"
     local bin_path="$OUTPUT_DIR/$bin_name"
 
@@ -377,13 +387,6 @@ show_help() {
 }
 
 # ── Main Entry ────────────────────────────────────────────────────────────────
-case "${1:-}" in
-    list) list_output; exit 0 ;;
-    verify) verify_static; exit 0 ;;
-    test) test_binary "${2:-}"; exit 0 ;;
-    --help|-h) show_help ;;
-esac
-
 # Pre-pass: detect --gcc/--clang so ARCH_INFO is populated with the right
 # compiler's table before parse_common_flag handles --list-archs.
 for _arg in "$@"; do
@@ -395,6 +398,13 @@ for _arg in "$@"; do
 done
 
 declare_arch_info
+
+case "${1:-}" in
+    list) list_output; exit 0 ;;
+    verify) verify_static; exit 0 ;;
+    test) test_binary "${2:-}"; exit 0 ;;
+    --help|-h) show_help ;;
+esac
 
 # Flag Parsing
 while [[ $# -gt 0 ]]; do
