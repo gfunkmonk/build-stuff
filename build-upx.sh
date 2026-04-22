@@ -57,6 +57,11 @@ declare_arch_info() {
       [x86_64]="x86_64-unknown-linux-musl:x86_64")
   elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
     declare -gA ARCH_INFO=(
+      [aarch64]="aarch64-unknown-linux-gnu:aarch64"
+      [aarch64_be]="aarch64_be-unknown-linux-gnu:aarch64_be"
+      [alpha]="alpha-unknown-linux-gnu:alpha"
+      #[alphaev56]="alphaev56-unknown-linux-gnu:alpha"
+      #[alphaev67]="alphaev67-unknown-linux-gnu:alpha"
       [arm]="arm-unknown-linux-gnueabi:arm"
       [armhf]="arm-unknown-linux-gnueabihf:arm"
       [armv4t]="armv4t-unknown-linux-gnueabi:arm"
@@ -65,11 +70,8 @@ declare_arch_info() {
       [armv6hf]="armv6-unknown-linux-gnueabihf:arm"
       [armv7]="armv7-unknown-linux-gnueabi:armv7"
       [armv7hf]="armv7-unknown-linux-gnueabihf:armv7"
-      [aarch64]="aarch64-unknown-linux-gnu:aarch64"
-      [aarch64_be]="aarch64_be-unknown-linux-gnu:aarch64_be"
-      [alphaev56]="alphaev56-unknown-linux-gnu:alpha"
-      [alphaev67]="alphaev67-unknown-linux-gnu:alpha"
       [hppa]="hppa-unknown-linux-gnu:hppa"
+      [hppa64]="hppa64-unknown-linux-gnu:hppa64"
       [i486]="i486-unknown-linux-gnu:i486"
       [i586]="i586-unknown-linux-gnu:i586"
       [i686]="i686-unknown-linux-gnu:i686"
@@ -98,7 +100,7 @@ declare_arch_info() {
       [sparc]="sparc-unknown-linux-gnu:sparc"
       [sparc64]="sparc64-unknown-linux-gnu:sparc64"
       [x86_64]="x86_64-unknown-linux-gnu:x86_64")
-  else
+  elif [[ "$COMPILER_TYPE" == "clang" ]]; then
     declare -gA ARCH_INFO=(
       [aarch64]="aarch64-unknown-linux-musl:aarch64"
       [aarch64_be]="aarch64_be-unknown-linux-musl:aarch64_be"
@@ -192,29 +194,29 @@ declare_arch_info
     # Determine emulation requirement
     local qemu_bin=""
     case "$bin_name" in
-        *aarch64_be*)  qemu_bin="qemu-aarch64_be" ;;
-        *aarch64*)     qemu_bin="qemu-aarch64" ;;
-        *armv[5-7]*|*arm-*) qemu_bin="qemu-arm" ;;
-	*alpha*)       qemu_bin="qemu-alpha" ;;
-        *riscv64*)     qemu_bin="qemu-riscv64" ;;
-        *riscv32*)     qemu_bin="qemu-riscv32" ;;
-        *microblazeel*) qemu_bin="qemu-microblazeel" ;;
-        *microblaze*)  qemu_bin="qemu-microblaze" ;;
-        *mips64el*)    qemu_bin="qemu-mips64el" ;;
-        *mips64el*)    qemu_bin="qemu-mips64el" ;;
-        *mips64*)      qemu_bin="qemu-mips64" ;;
-        *mipsel*)      qemu_bin="qemu-mipsel" ;;
-        *mips*)        qemu_bin="qemu-mips" ;;
-        *powerpc64le*) qemu_bin="qemu-ppc64le" ;;
-        *powerpc64*)   qemu_bin="qemu-ppc64" ;;
-        *powerpc*)     qemu_bin="qemu-ppc" ;;
-        *s390x*)       qemu_bin="qemu-s390x" ;;
-        *loongarch64*) qemu_bin="qemu-loongarch64" ;;
-        *m68k*)        qemu_bin="qemu-m68k" ;;
-        *sh4*)         qemu_bin="qemu-sh4" ;;
-        *sparc64*)     qemu_bin="qemu-sparc64" ;;
-        *sparc*)       qemu_bin="qemu-sparc" ;;
-        *hppa*)        qemu_bin="qemu-hppa" ;;
+        *aarch64_be*)  	qemu_bin="qemu-aarch64_be" ;;
+        *aarch64*)     	qemu_bin="qemu-aarch64" ;;
+        *armv[5-7]*|*arm-*) 	qemu_bin="qemu-arm" ;;
+        *alpha*)       	qemu_bin="qemu-alpha" ;;
+        *riscv64*)     	qemu_bin="qemu-riscv64" ;;
+        *riscv32*)     	qemu_bin="qemu-riscv32" ;;
+        *microblazeel*) 	qemu_bin="qemu-microblazeel" ;;
+        *microblaze*)  	qemu_bin="qemu-microblaze" ;;
+        *mips64el*)    	qemu_bin="qemu-mips64el" ;;
+        *mips64el*)    	qemu_bin="qemu-mips64el" ;;
+        *mips64*)      	qemu_bin="qemu-mips64" ;;
+        *mipsel*)      	qemu_bin="qemu-mipsel" ;;
+        *mips*)        	qemu_bin="qemu-mips" ;;
+        *powerpc64le*) 	qemu_bin="qemu-ppc64le" ;;
+        *powerpc64*)   	qemu_bin="qemu-ppc64" ;;
+        *powerpc*)     	qemu_bin="qemu-ppc" ;;
+        *s390x*)       	qemu_bin="qemu-s390x" ;;
+        *loongarch64*) 	qemu_bin="qemu-loongarch64" ;;
+        *m68k*)        	qemu_bin="qemu-m68k" ;;
+        *sh4*)         	qemu_bin="qemu-sh4" ;;
+        *sparc64*)     	qemu_bin="qemu-sparc64" ;;
+        *sparc*)       	qemu_bin="qemu-sparc32plus" ;;
+        *hppa*)        	qemu_bin="qemu-hppa" ;;
     esac
 
     if [[ -n "$qemu_bin" ]]; then
