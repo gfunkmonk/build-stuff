@@ -166,21 +166,13 @@ verify_static() {
 }
 
 test_binary() {
-for _arg in "$@"; do
-    case "$_arg" in
-        --gcc)   set_compiler gcc ;;
-        --clang) set_compiler clang ;;
-        --gnu)   set_compiler gnu ;;
-    esac
-done
-
-declare_arch_info
+    setup_toolchain_dir
 
     local bin_name="$1"
     local bin_path="$OUTPUT_DIR/$bin_name"
 
     if [[ -z "$bin_name" ]]; then
-        echo -e "${OCHRE}Usage: $0 test <binary-name>${NC}"
+        echo -e "${OCHRE}Usage: $0 [--gcc|--clang|--gnu] test <binary-name>${NC}"
         return 1
     fi
 
@@ -298,6 +290,12 @@ build_arch() {
     local arch_cxxflags="$CXXFLAGS"
     local arch_ldflags=""
 
+    if [[ "$arch_key" == "hppa64" ]]; then
+		#arch_ldflags="-Wl,--defsym=_restfpr_31=main"
+		arch_cflags="$CFLAGS -march=2.0"
+		arch_cxxflags="$CXXFLAGS -march=2.0"
+    fi
+
     if [[ "$arch_key" == "powerpc64" || "$arch_key" == "powerpc64le" ]]; then
 	if [[ "$COMPILER_TYPE" == "clang" ]]; then
 		arch_ldflags="-Wl,--defsym=_restfpr_31=main"
@@ -410,12 +408,15 @@ done
 
 declare_arch_info
 
-case "${1:-}" in
-    list) list_output; exit 0 ;;
-    verify) verify_static; exit 0 ;;
-    test) test_binary "${2:-}"; exit 0 ;;
-    --help|-h) show_help ;;
-esac
+_args=("$@")
+for (( _i=0; _i<${#_args[@]}; _i++ )); do
+    case "${_args[$_i]}" in
+        list)   list_output;                        exit 0 ;;
+        verify) verify_static;                      exit 0 ;;
+        test)   test_binary "${_args[$_i+1]:-}";   exit 0 ;;
+        -h|--help) show_help ;;
+    esac
+done
 
 # Flag Parsing
 while [[ $# -gt 0 ]]; do
