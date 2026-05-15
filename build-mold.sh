@@ -5,7 +5,7 @@ source "$(dirname "$0")/common.sh"
 
 # ── Defaults & Config ─────────────────────────────────────────────────────────
 REPO_URL="https://github.com/gfunkmonk/mold.git"
-REPO_BRANCH="stable"
+REPO_BRANCH="main"
 DL_COLOR="${NEONGREEN}"
 DL_TC_1="${SKY}"
 DL_TC_2="${HOTPINK}"
