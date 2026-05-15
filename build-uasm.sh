@@ -157,7 +157,7 @@ build_arch() {
 
     # Specific fix for i686/32-bit targets
     local ARCH_FLAGS=""
-    [[ "$arch" == i*86 ]] && ARCH_FLAGS="-m32"
+    [[ "$arch_key" == i*86 || "$arch_key" == x86 ]] && ARCH_FLAGS="-m32"
 
     echo -e "${MAUVE}==>${NC} ${CORAL}Running Make (Jobs: $JOBS)...${NC}"
     echo -e "${SLATE}Log: ./$relative_log${NC}"
