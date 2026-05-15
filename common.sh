@@ -554,7 +554,13 @@ final() {
 }
 
 check_static() {
-    if readelf -l "$1" | grep -q "program interpreter"; then
-        echo -e "${NEONRED}⚠️  Warning: Binary is dynamically linked!${NC}"
-    fi
+    local found=false
+    for bin in "$OUTPUT_DIR"/*; do
+        [[ -f "$bin" && -x "$bin" ]] || continue
+        found=true
+        if readelf -l "$bin" 2>/dev/null | grep -q "program interpreter"; then
+            echo -e "${NEONRED}⚠️  Warning: $(basename "$bin") is dynamically linked!${NC}"
+        fi
+    done
+    [[ "$found" == false ]] && echo -e "${SLATE}  (no binaries found in $OUTPUT_DIR to check)${NC}"
 }
