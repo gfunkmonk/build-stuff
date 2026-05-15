@@ -22,19 +22,19 @@ GIT_C2="${HIGHLIGHTER}"
 declare_arch_info() {
   if [[ "$COMPILER_TYPE" == "gnu" ]]; then
     declare -gA ARCH_INFO=(
-      [x86_64]="x86_64-unknown-linux-gnu:x86_64-unknown-linux-gnu.tar.xz"
-      [x86]="i686-unknown-linux-gnu:i686-unknown-linux-gnu.tar.xz"
-      [aarch64]="aarch64-unknown-linux-gnu:aarch64-unknown-linux-gnu.tar.xz"
-      [armv7]="armv7-unknown-linux-gnueabihf:armv7-unknown-linux-gnueabihf.tar.xz"
-      [armhf]="arm-unknown-linux-gnueabihf:arm-unknown-linux-gnueabihf.tar.xz"
+      [x86_64]="x86_64-unknown-linux-gnu:x86_64-unknown-linux-gnu.tar.xz:x86_64"
+      [x86]="i686-unknown-linux-gnu:i686-unknown-linux-gnu.tar.xz:i686"
+      [aarch64]="aarch64-unknown-linux-gnu:aarch64-unknown-linux-gnu.tar.xz:aarch64"
+      [armv7]="armv7-unknown-linux-gnueabihf:armv7-unknown-linux-gnueabihf.tar.xz:armv7"
+      [armhf]="arm-unknown-linux-gnueabihf:arm-unknown-linux-gnueabihf.tar.xz:armhf"
     )
   else
     declare -gA ARCH_INFO=(
-      [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz"
-      [x86]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz"
-      [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz"
-      [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz"
-      [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz"
+      [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz:x86_64"
+      [x86]="i686-unknown-linux-musl:i686-unknown-linux-musl.tar.xz:i686"
+      [aarch64]="aarch64-unknown-linux-musl:aarch64-unknown-linux-musl.tar.xz:aarch64"
+      [armv7]="armv7-unknown-linux-musleabihf:armv7-unknown-linux-musleabihf.tar.xz:armv7"
+      [armhf]="arm-unknown-linux-musleabihf:arm-unknown-linux-musleabihf.tar.xz:armhf"
     )
   fi
 }
@@ -95,7 +95,7 @@ build_arch() {
     local out_file="$OUTPUT_DIR/$NAME-$arch"
     local log_file="$ROOT_DIR/build-$arch.log"
 
-    echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+   echo -e "${NEONPURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
     # Check Resume Mode
     if [[ "$RESUME_MODE" == true && -f "$out_file" ]]; then
@@ -134,6 +134,15 @@ build_arch() {
     local idir="$BUILD_BASE/$arch-install"
     mkdir -p "$bdir" "$idir" "$OUTPUT_DIR"
 
+    # blake3 bundles x86-64-only asm (SSE2/SSE41/AVX2/AVX512) that uses 64-bit
+    # registers; all four files fail when cross-compiling for 32-bit x86.
+    local arch_cmake_flags=""
+    [[ "$arch" == "x86" ]] && arch_cmake_flags="\
+        -DBLAKE3_NO_SSE2=ON \
+        -DBLAKE3_NO_SSE41=ON \
+        -DBLAKE3_NO_AVX2=ON \
+        -DBLAKE3_NO_AVX512=ON"
+
     echo -e "${SKY}==>${NC} ${ORANGE}🎛 Configuring CMake...${NC}"
     # Force colors in the generated Makefile so progress strings are sent to the pipe
     cmake -S "$SOURCE_DIR" -B "$bdir" -G "${CMAKE_GENERATOR:-Unix Makefiles}" \
@@ -148,9 +157,11 @@ build_arch() {
         -DMOLD_USE_SYSTEM_TBB=OFF \
         -DBUILD_SHARED_LIBS=OFF \
         -DCMAKE_COLOR_MAKEFILE=ON \
+	-DCMAKE_INSTALL_PREFIX="$idir" \
         -DCMAKE_C_FLAGS="${CFLAGS} -fPIC" \
         -DCMAKE_CXX_FLAGS="${CXXFLAGS} -fPIC$([[ "$COMPILER_BIN" == "gcc" ]] && echo " -Wno-stringop-overflow")" \
-        -DCMAKE_EXE_LINKER_FLAGS="-static" > "$log_file" 2>&1 || {
+        -DCMAKE_EXE_LINKER_FLAGS="-static" \
+	${arch_cmake_flags} > "$log_file" 2>&1 || {
             echo -e "${NEONRED}CMake configure FAILED❗ Check $log_file${NC}"; return 1;
         }
 
