@@ -144,6 +144,7 @@ build_arch() {
         --host="$triple" \
         --disable-shared \
         --enable-static \
+        --enable-all-static \
         --disable-docs \
         --disable-valgrind \
         --with-oniguruma=builtin \
