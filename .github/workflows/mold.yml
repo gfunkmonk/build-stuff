@@ -1,0 +1,79 @@
+name: Build mold
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'build-mold.sh'
+      - 'common.sh'
+      - '.github/workflows/build-mold.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'build-mold.sh'
+      - 'common.sh'
+  workflow_dispatch:
+    inputs:
+      archs:
+        description: 'Space separated arch list (blank = script default; use --list-archs to see all)'
+        required: false
+        default: ''
+      compiler:
+        description: 'Limit to one toolchain (blank = build all listed below)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - gcc
+          - clang
+          - gnu
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.compiler == '' || github.event.inputs.compiler == matrix.compiler }}
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang, gnu]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install host build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build
+
+      - name: Cache toolchain downloads
+        uses: actions/cache@v4
+        with:
+          path: toolchains/${{ matrix.compiler }}
+          key: toolchain-${{ matrix.compiler }}-${{ hashFiles('common.sh') }}
+
+      - name: Build (${{ matrix.compiler }})
+        env:
+          ARCHS_INPUT: ${{ github.event.inputs.archs }}
+        run: |
+          chmod +x ./build-mold.sh
+          ARGS=(--${{ matrix.compiler }} -j "$(nproc)")
+          if [[ -n "${ARCHS_INPUT:-}" ]]; then
+            ARGS+=(--arch "${ARCHS_INPUT}")
+          fi
+          ./build-mold.sh "${ARGS[@]}"
+
+      - name: Upload built binaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mold-${{ matrix.compiler }}
+          path: output/mold/${{ matrix.compiler }}/
+          if-no-files-found: warn
+          retention-days: 14
