@@ -1,18 +1,6 @@
 name: Build upx
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-upx.sh'
-      - 'common.sh'
-      - '.github/workflows/upx.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-upx.sh'
-      - 'common.sh'
-      - '.github/workflows/upx.yml'
   workflow_dispatch:
     inputs:
       archs:

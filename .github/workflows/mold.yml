@@ -1,18 +1,6 @@
 name: Build mold
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-mold.sh'
-      - 'common.sh'
-      - '.github/workflows/mold.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-mold.sh'
-      - 'common.sh'
-      - '.github/workflows/mold.yml'
   workflow_dispatch:
     inputs:
       archs:

@@ -1,18 +1,6 @@
 name: Build curl
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-curl.sh'
-      - 'common.sh'
-      - '.github/workflows/curl.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-curl.sh'
-      - 'common.sh'
-      - '.github/workflows/curl.yml'
   workflow_dispatch:
     inputs:
       archs:

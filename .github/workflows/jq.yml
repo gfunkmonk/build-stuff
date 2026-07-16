@@ -1,18 +1,6 @@
 name: Build jq
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-jq.sh'
-      - 'common.sh'
-      - '.github/workflows/jq.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-jq.sh'
-      - 'common.sh'
-      - '.github/workflows/jq.yml'
   workflow_dispatch:
     inputs:
       archs:

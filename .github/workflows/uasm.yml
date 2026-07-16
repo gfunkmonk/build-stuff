@@ -1,18 +1,6 @@
 name: Build uasm
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-uasm.sh'
-      - 'common.sh'
-      - '.github/workflows/uasm.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-uasm.sh'
-      - 'common.sh'
-      - '.github/workflows/uasm.yml'
   workflow_dispatch:
     inputs:
       archs:

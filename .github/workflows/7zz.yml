@@ -1,18 +1,6 @@
 name: Build 7zz
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'build-7zz.sh'
-      - 'common.sh'
-      - '.github/workflows/7zz.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'build-7zz.sh'
-      - 'common.sh'
-      - '.github/workflows/7zz.yml'
   workflow_dispatch:
     inputs:
       archs:
