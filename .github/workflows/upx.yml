@@ -6,20 +6,21 @@ on:
     paths:
       - 'build-upx.sh'
       - 'common.sh'
-      - '.github/workflows/build-upx.yml'
+      - '.github/workflows/upx.yml'
   pull_request:
     branches: [main]
     paths:
       - 'build-upx.sh'
       - 'common.sh'
+      - '.github/workflows/upx.yml'
   workflow_dispatch:
     inputs:
       archs:
-        description: 'Space separated arch list (blank = script default; use --list-archs to see all)'
+        description: 'Space-separated arch list (blank = script default)'
         required: false
         default: ''
       compiler:
-        description: 'Limit to one toolchain (blank = build all listed below)'
+        description: 'Toolchain to build (blank = all)'
         required: false
         default: ''
         type: choice
@@ -29,6 +30,9 @@ on:
           - clang
           - gnu
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -36,50 +40,57 @@ concurrency:
 jobs:
   build:
     name: ${{ matrix.compiler }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         compiler: [gcc, clang, gnu]
-
-    env:
-      SELECTED: ${{ github.event.inputs.compiler == '' || github.event.inputs.compiler == matrix.compiler }}
+        exclude:
+          - compiler: ${{ (github.event.inputs.compiler != '' && github.event.inputs.compiler != 'gcc')   && 'gcc'   || '' }}
+          - compiler: ${{ (github.event.inputs.compiler != '' && github.event.inputs.compiler != 'clang') && 'clang' || '' }}
+          - compiler: ${{ (github.event.inputs.compiler != '' && github.event.inputs.compiler != 'gnu')   && 'gnu'   || '' }}
 
     steps:
       - name: Checkout
-        if: env.SELECTED == 'true'
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-upx-${{ runner.os }}-${{ hashFiles('.github/workflows/upx.yml') }}
+          restore-keys: apt-upx-${{ runner.os }}-
 
       - name: Install host build dependencies
-        if: env.SELECTED == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends cmake
 
       - name: Cache toolchain downloads
-        if: env.SELECTED == 'true'
         uses: actions/cache@v4
         with:
           path: toolchains/${{ matrix.compiler }}
-          key: toolchain-${{ matrix.compiler }}-${{ hashFiles('common.sh') }}
+          key: toolchain-upx-${{ matrix.compiler }}-${{ hashFiles('common.sh') }}
+          restore-keys: |
+            toolchain-upx-${{ matrix.compiler }}-
+            toolchain-${{ matrix.compiler }}-
 
       - name: Build (${{ matrix.compiler }})
-        if: env.SELECTED == 'true'
         env:
           ARCHS_INPUT: ${{ github.event.inputs.archs }}
         run: |
           chmod +x ./build-upx.sh
           ARGS=(--${{ matrix.compiler }} -j "$(nproc)")
-          if [[ -n "${ARCHS_INPUT:-}" ]]; then
-            ARGS+=(--arch "${ARCHS_INPUT}")
-          fi
+          [[ -n "${ARCHS_INPUT:-}" ]] && ARGS+=(--arch "${ARCHS_INPUT}")
           ./build-upx.sh "${ARGS[@]}"
 
       - name: Upload built binaries
-        if: env.SELECTED == 'true' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: upx-${{ matrix.compiler }}
           path: output/upx/${{ matrix.compiler }}/
-          if-no-files-found: warn
-          retention-days: 14
+          if-no-files-found: error
+          retention-days: 30
