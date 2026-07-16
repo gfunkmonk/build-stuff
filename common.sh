@@ -286,14 +286,31 @@ clean_workspace() {
 # Iterate over $ARCHS and call build_arch for each known architecture.
 # Requires ARCHS and ARCH_INFO to be set, and build_arch to be defined,
 # by the calling script.
+# Failures are collected and reported at the end; a non-zero exit is returned
+# when any arch failed so the caller/CI sees the correct exit code without
+# short-circuiting the remaining targets.
 build_all_archs() {
+    local failed_archs=()
     for arch in $ARCHS; do
         if [[ -z "${ARCH_INFO[$arch]:-}" ]]; then
             echo -e "${NEONRED}Skipping unknown architecture: $arch${NC}"
             continue
         fi
-        build_arch "$arch"
+        build_arch "$arch" || {
+            echo -e "${NEONRED}❌ Build FAILED for: $arch${NC}"
+            failed_archs+=("$arch")
+        }
     done
+
+    if [[ ${#failed_archs[@]} -gt 0 ]]; then
+        echo -e "\n${NEONRED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${NEONRED}❌ The following architectures FAILED:${NC}"
+        for a in "${failed_archs[@]}"; do
+            echo -e "  ${TOMATO}• $a${NC}"
+        done
+        echo -e "${NEONRED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+        return 1
+    fi
 }
 
 # ── Toolchain Download ────────────────────────────────────────────────────────
@@ -550,10 +567,14 @@ git_clone() {
 final() {
     echo -e "\n${FINAL_C}🎇 All requested architectures are finished!${NC}"
     echo -e "${BWHITE}Final binaries available in:${NC} ${MINT}${OUTPUT_DIR}${NC}"
-    ls -F --color=auto "$OUTPUT_DIR"
+    ls -F --color=auto "$OUTPUT_DIR" 2>/dev/null || echo -e "${SLATE}  (output directory is empty)${NC}"
 }
 
 check_static() {
+    if ! command -v readelf &>/dev/null; then
+        echo -e "${SLATE}  (readelf not found — skipping static check)${NC}"
+        return 0
+    fi
     local found=false
     for bin in "$OUTPUT_DIR"/*; do
         [[ -f "$bin" && -x "$bin" ]] || continue
@@ -563,4 +584,5 @@ check_static() {
         fi
     done
     [[ "$found" == false ]] && echo -e "${SLATE}  (no binaries found in $OUTPUT_DIR to check)${NC}"
+    return 0
 }
