@@ -38,23 +38,28 @@ jobs:
   build:
     name: ${{ matrix.compiler }}
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.compiler == '' || github.event.inputs.compiler == matrix.compiler }}
     strategy:
       fail-fast: false
       matrix:
         compiler: [gcc, clang, gnu, uclibc]
 
+    env:
+      SELECTED: ${{ github.event.inputs.compiler == '' || github.event.inputs.compiler == matrix.compiler }}
+
     steps:
       - name: Checkout
+        if: env.SELECTED == 'true'
         uses: actions/checkout@v4
 
       - name: Cache toolchain downloads
+        if: env.SELECTED == 'true'
         uses: actions/cache@v4
         with:
           path: toolchains/${{ matrix.compiler }}
           key: toolchain-${{ matrix.compiler }}-${{ hashFiles('common.sh') }}
 
       - name: Build (${{ matrix.compiler }})
+        if: env.SELECTED == 'true'
         env:
           ARCHS_INPUT: ${{ github.event.inputs.archs }}
         run: |
@@ -66,7 +71,7 @@ jobs:
           ./build-uasm.sh "${ARGS[@]}"
 
       - name: Upload built binaries
-        if: always()
+        if: env.SELECTED == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: uasm-${{ matrix.compiler }}
