@@ -204,6 +204,7 @@ COMPILER_BIN="gcc"
 OUTPUT_DIR="$(pwd)/output/${NAME}/${COMPILER_TYPE}"
 JOBS="$(nproc)"
 RESUME_MODE=false
+
 USER_ARCHS=""
 CFLAGS="-Os"
 CXXFLAGS="-Os"
