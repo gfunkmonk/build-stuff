@@ -28,6 +28,14 @@ declare_arch_info() {
       [armv7]="armv7-unknown-linux-gnueabihf:armv7-unknown-linux-gnueabihf.tar.xz:armv7"
       [armhf]="arm-unknown-linux-gnueabihf:arm-unknown-linux-gnueabihf.tar.xz:armhf"
     )
+  elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
+    declare -gA ARCH_INFO=(
+      [x86_64]="x86_64-unknown-linux-uclibc:x86_64-unknown-linux-uclibc.tar.xz:x86_64"
+      [x86]="i686-unknown-linux-uclibc:i686-unknown-linux-uclibc.tar.xz:i686"
+      [aarch64]="aarch64-unknown-linux-uclibc:aarch64-unknown-linux-uclibc.tar.xz:aarch64"
+      [armv7]="armv7-unknown-linux-uclibcgnueabihf:armv7-unknown-linux-uclibcgnueabihf.tar.xz:armv7"
+      [armhf]="arm-unknown-linux-uclibcgnueabihf:arm-unknown-linux-uclibcgnueabihf.tar.xz:armhf"
+
   else
     declare -gA ARCH_INFO=(
       [x86_64]="x86_64-unknown-linux-musl:x86_64-unknown-linux-musl.tar.xz:x86_64"
@@ -47,6 +55,7 @@ show_help() {
     echo -e "  ${NEONGREEN}--gcc${NC}             Use GCC toolchains (musl, default)"
     echo -e "  ${NEONGREEN}--clang${NC}           Use Clang toolchains"
     echo -e "  ${NEONGREEN}--gnu${NC}             Use GNU GCC toolchains (glibc)"
+    echo -e "  ${NEONGREEN}--uClibc${NC}             Use uClibc toolchains"
     echo -e "  ${NEONGREEN}-a|--arch \"LIST\"${NC}  Space separated list of arches to build"
     echo -e "  ${NEONGREEN}-r|--resume${NC}       Skip architectures already found in output/"
     echo -e "  ${NEONGREEN}-j|--jobs N${NC}       Parallel make jobs (default: auto-detected)"
@@ -66,6 +75,7 @@ for _arg in "$@"; do
         --gcc)   set_compiler gcc ;;
         --clang) set_compiler clang ;;
         --gnu)   set_compiler gnu ;;
+        --u)   set_compiler uclibc ;;
     esac
 done
 declare_arch_info

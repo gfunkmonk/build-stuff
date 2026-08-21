@@ -55,6 +55,41 @@ declare_arch_info() {
       [s390x]="s390x-ibm-linux-musl:s390x"
       [sh4]="sh4-multilib-linux-musl:sh4"
       [x86_64]="x86_64-unknown-linux-musl:x86_64")
+  elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
+    declare -gA ARCH_INFO=(
+      [arm]="arm-unknown-linux-uclibcgnueabi:arm"
+      [armhf]="arm-unknown-linux-uclibcgnueabihf:arm"
+      [armv4t]="armv4t-unknown-linux-uclibcgnueabi:armv4t"
+      [armv5]="armv5-unknown-linux-uclibcgnueabi:armv5"
+      [armv6]="armv6-unknown-linux-uclibcgnueabi:arm"
+      [armv6hf]="armv6-unknown-linux-uclibcgnueabihf:arm"
+      [armv7]="armv7-unknown-linux-uclibcgnueabi:armv7"
+      [armv7hf]="armv7-unknown-linux-uclibcgnueabihf:armv7"
+      [aarch64]="aarch64-unknown-linux-uclibc:aarch64"
+      [aarch64_be]="aarch64_be-unknown-linux-uclibc:aarch64_be"
+      [hppa]="hppa-unknown-linux-uclibc:hppa"
+      [i486]="i486-unknown-linux-uclibc:i486"
+      [i586]="i586-unknown-linux-uclibc:i586"
+      [i686]="i686-unknown-linux-uclibc:i686"
+      [m68k]="m68k-unknown-linux-uclibc:m68k"
+      [microblaze]="microblaze-xilinx-linux-uclibc:microblaze"
+      [microblazeel]="microblazeel-xilinx-linux-uclibc:microblazeel"
+      [mips]="mips-unknown-linux-uclibc:mips"
+      [mips-sf]="mips-unknown-linux-uclibcsf:mips"
+      [mips64]="mips64-unknown-linux-uclibc:mips64"
+      [mips64el]="mips64el-unknown-linux-uclibc:mips64el"
+      [mipsel]="mipsel-unknown-linux-uclibc:mipsel"
+      [mipsel-sf]="mipsel-unknown-linux-uclibcsf:mipsel"
+      [or1k]="or1k-unknown-linux-uclibc:or1k"
+      [powerpc]="powerpc-unknown-linux-uclibc:powerpc"
+      [powerpc-sf]="powerpc-unknown-linux-uclibcsf:powerpc"
+      [powerpcle]="powerpcle-unknown-linux-uclibc:powerpcle"
+      [powerpcle-sf]="powerpcle-unknown-linux-uclibcsf:powerpcle"
+      [riscv32]="riscv32-unknown-linux-uclibc:riscv32"
+      [riscv64]="riscv64-unknown-linux-uclibc:riscv64"
+      [sh4]="sh4-multilib-linux-uclibc:sh4"
+      [sparc]="sparc-unknown-linux-uclibc:sparc"
+      [x86_64]="x86_64-unknown-linux-uclibc:x86_64")
   elif [[ "$COMPILER_TYPE" == "gnu" ]]; then
     declare -gA ARCH_INFO=(
       [aarch64]="aarch64-unknown-linux-gnu:aarch64"
@@ -375,6 +410,7 @@ show_help() {
     echo -e "  ${NEONBLUE}--gcc${NC}               Use GCC toolchains (musl, default)"
     echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains"
     echo -e "  ${NEONBLUE}--gnu${NC}               Use GNU GCC toolchains (glibc)"
+    echo -e "  ${NEONBLUE}--uclibc${NC}            Use uCibc-ng toolchains"
     echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
@@ -403,6 +439,7 @@ for _arg in "$@"; do
         --gcc)   set_compiler gcc ;;
         --clang) set_compiler clang ;;
         --gnu)   set_compiler gnu ;;
+        --uclibc)   set_compiler uclibc ;;
     esac
 done
 
