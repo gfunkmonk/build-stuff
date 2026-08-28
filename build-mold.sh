@@ -75,7 +75,7 @@ for _arg in "$@"; do
         --gcc)   set_compiler gcc ;;
         --clang) set_compiler clang ;;
         --gnu)   set_compiler gnu ;;
-        --u)   set_compiler uclibc ;;
+        --uclibc)   set_compiler uclibc ;;
     esac
 done
 declare_arch_info

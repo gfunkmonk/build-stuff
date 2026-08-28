@@ -340,8 +340,8 @@ build_arch() {
 	fi
     elif [[ "$arch_key" == "loongarch64" ]]; then
 	arch_ldflags="-Wl,--strip-debug"
-    elif [[ "$arch_key" == "m68k" ]]; then
-	arch_ldflags="-fuse-ld=$bin_dir/ld.lld"
+    #elif [[ "$arch_key" == "m68k" ]]; then
+	#arch_ldflags="-fuse-ld=$bin_dir/ld.lld"
     elif [[ "$arch_key" == alphaev* ]]; then
 	arch_cflags="$CFLAGS -fno-stack-protector"
 	arch_cxxflags="$CXXFLAGS -fno-stack-protector"
