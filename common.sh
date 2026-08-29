@@ -1,4 +1,4 @@
-%2#!/usr/bin/env bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -157,39 +157,47 @@ declare -A HASHES_CLANG=(
   [x86_64-unknown-linux-musl.tar.xz]="6dbf4c0aea19fa11a6a9bd381afc56387545b8aad4094f3fda0ad2a67834e0ce"
 )
 declare -A HASHES_UCLIBC=(
-  [aarch64-unknown-linux-uclibc.tar.xz]="49995d94f6b1c27f35beace0af80fbeaeef758ded824483d2bf7c0101cd41097"
-  [aarch64_be-unknown-linux-uclibc.tar.xz]="f3d660a88fdcbf94248ceebbb560eb6955f2c3319b5f308a124b23ed503f9299"
-  [arm-unknown-linux-uclibcgnueabi.tar.xz]="8e28e8abe224145b8a49785e9ed270072c003d6d40024bdbea00ee34ad5a5fc9"
-  [arm-unknown-linux-uclibcgnueabihf.tar.xz]="6ceb6b2d37d910fc439393abb054e7662d885128cf1ee87117a4bf967734629c"
-  [armv4t-unknown-linux-uclibcgnueabi.tar.xz]="a088b763322dd1a57bc15342709ce0aefa7526dff582818a6bfaa662111feaa2"
-  [armv5-unknown-linux-uclibcgnueabi.tar.xz]="47099afec86d792613e29d498f73c1841a82a318752de8ef5ae2b38102e6902b"
-  [armv6-unknown-linux-uclibcgnueabi.tar.xz]="0a97609f5350781f8155797192f98246941df0c7d18f8d38f227b9e7ef2db6ad"
-  [armv6-unknown-linux-uclibcgnueabihf.tar.xz]="7eb3b7055d01160396e2a8c00ff6270c2ab21d9fedc6cc7d990dd6ce9d4f6252"
-  [armv7-unknown-linux-uclibcgnueabi.tar.xz]="77c16902b48baa41e9a668c3783d1587a72ed667724f6f319f83422b840aa02c"
-  [armv7-unknown-linux-uclibcgnueabihf.tar.xz]="69680d1fb1ddac3701956ea1080b4c7ccdc1ea9c5e2b031e267f1270873cb741"
-  [hppa-unknown-linux-uclibc.tar.xz]="83d1389d2b1a6d37fcc4042dc77e568aec733abe5663289176dfe05df4017179"
-  [i486-unknown-linux-uclibc.tar.xz]="c0fcdcfb15e163cfcfe5632ae669c197547b948e3997248d2c8b45f88cf2778c"
-  [i586-unknown-linux-uclibc.tar.xz]="a69c0850366ed17459992821288e62199b47605063123644b7f1b3aaf848493c"
-  [i686-unknown-linux-uclibc.tar.xz]="92f30596d5ceedb352f873649a7b4286bbe4237d88ee82ead807d24a4d93680f"
-  [m68k-unknown-linux-uclibc.tar.xz]="c64df82423a37f8968ea08de34283f957dbe43d888c04749c22681f1d8bac809"
-  [microblaze-xilinx-linux-uclibc.tar.xz]="7f8408141690436f50b4e7aeedd2c18d09649d3eaf89efb55a75a103609d4272"
-  [microblazeel-xilinx-linux-uclibc.tar.xz]="665464078fa735ab3802c6ea8c957f3246ef51692e575e74e5d8533455ac5170"
-  [mips-unknown-linux-uclibc.tar.xz]="d90dd756bdd236579f32d3b6ebcf68e6efec0b4e71a62f6e36b9cdf269925d7e"
-  [mips-unknown-linux-uclibcsf.tar.xz]="cb6a7cf15dda83a8e8c4d326a1b8b426c0045222b9203612952266d032163268"
-  [mips64-unknown-linux-uclibc.tar.xz]="71a910fd75f5c729ba35c0b84c7f723c38652384fad5030be9861fe6dad37dbe"
-  [mips64el-unknown-linux-uclibc.tar.xz]="bbe443b1b5c5f3db62370ae3c3df77dc05326605304d839ea9708ba4918ed99e"
-  [mipsel-unknown-linux-uclibc.tar.xz]="02fe11f109d563227d40adf2d612aedd5969da698abf8213d09916dacea942f3"
-  [mipsel-unknown-linux-uclibcsf.tar.xz]="50b2261b223c47d73b1366e5dca09de76cb967b4912312fd2285f7c9d96a1cbc"
-  [or1k-unknown-linux-uclibc.tar.xz]="3ae42645bc349b0a20401f38bace08b2dea891e075c08670964f768480cbd611"
-  [powerpc-unknown-linux-uclibc.tar.xz]="6c70f4c29e8fccc795b8fc7f789f285251b182fcc9ac00a1edcf195452543b4a"
-  [powerpc-unknown-linux-uclibcsf.tar.xz]="c890b8c641911d890a22e1d40d836cd5f7eb23d061301e0f8e9eedbade5f307d"
-  [powerpcle-unknown-linux-uclibc.tar.xz]="d63def7b1e7fb57d8ea66ec6753903689152405b63169a4b865fe5a1f5848b44"
-  [powerpcle-unknown-linux-uclibcsf.tar.xz]="cc9fbdc2cfbeaa679d8d3dc850a80346ef523ed6ef16a622aac49b394edf65da"
-  [riscv32-unknown-linux-uclibc.tar.xz]="25cef9492ff30ee0832cc4c03b26703928a9b8d08c91bd30e11f394fa05a977f"
-  [riscv64-unknown-linux-uclibc.tar.xz]="f9685bbd1d6668dc322cbc436ec8c06d27eebdc73a3628622d9f003d11f81b36"
-  [sh4-multilib-linux-uclibc.tar.xz]="88621fd45c534371a049a326f30965aab11607b3204256a5567ddf9c4bc520cb"
-  [sparc-unknown-linux-uclibc.tar.xz]="e5e43c4ec4728300c5c0aa3df4144b52add1c0ab8e9e1959785c35ef02058b66"
-  [x86_64-unknown-linux-uclibc.tar.xz]="870752e21f08e8853caf4732d341338cfe2207342ad793ef43d56de4ada5199d"
+  [aarch64-unknown-linux-uclibc.tar.xz]="19ada2bbe8f0bc660aaa77eaef8e17ee7c5db3ee2b5df1c12a4c9879bbc45a91"
+  [aarch64_be-unknown-linux-uclibc.tar.xz]="5b3542ae07d68da8ba9afe08fb12ad3df43699b66b0612f21695e5cd187ff0eb"
+  [alpha-unknown-linux-uclibc.tar.xz]="39dbaaf1f0dc36efc1b2ff92a129338fb2d7778de57b214bd19175db08ee6f0b"
+  [arm-unknown-linux-uclibcgnueabi.tar.xz]="f760bd03d25727ab4418b77effbb24fec1c3325129411a2644bf6e9db35f293f"
+  [arm-unknown-linux-uclibcgnueabihf.tar.xz]="c584f87fdcdda62aa0145a8d0cfe247e7f4e1866756b1ff6059e55268e1a59cb"
+  [armv4t-unknown-linux-uclibcgnueabi.tar.xz]="ba6f6e6d466b0c25492ff476dd945364b6a3cad18bd5248b9bbb43d66d9a90da"
+  [armv5-unknown-linux-uclibcgnueabi.tar.xz]="9b0bba88f8206a5e4b3f3d5162f9ed836d1c0da2da459d2f6e85b1221cf624be"
+  [armv6-unknown-linux-uclibcgnueabi.tar.xz]="0c5b90532d4de3fadb053c4480628f4c237be1412a11c16d83a4c0c230ea49b8"
+  [armv6-unknown-linux-uclibcgnueabihf.tar.xz]="971fc89ab688f9162a47cfd289bd08cd9f868fa1d8dd4b298f23087684095df2"
+  [armv7-unknown-linux-uclibcgnueabi.tar.xz]="97e32b51935d9a52c1b189bcd6325dc255b18e28fb40f142066a72c4c9626725"
+  [armv7-unknown-linux-uclibcgnueabihf.tar.xz]="681f87109e01282c1da2d7b12f636bb2e1e47b5f8e8ba353f5a45f9cadc50a79"
+  [hppa-unknown-linux-uclibc.tar.xz]="81f7a1b180c423f861feed97876a0a71f0747cb1b9fc83273e289ee37cab31c1"
+  [i486-unknown-linux-uclibc.tar.xz]="862ac667e8cc93eeab69731c40bbc7dec969cc95e8bd85d59b65db3b4420aba7"
+  [i586-unknown-linux-uclibc.tar.xz]="5cf3b26038d2ecddffc2776fe35736851c0d7fcabdeb9b0ef986b4571d405ea6"
+  [i686-unknown-linux-uclibc.tar.xz]="019e34db1e79db61f1f62387a47464c441de08c90df5bb5fec607d94f4b19040"
+  [m68k-unknown-linux-uclibc.tar.xz]="f25d765bf892328a7e42b97f2e3af2a1532e085b61b5672a3d7ff04a75549e59"
+  [microblaze-xilinx-linux-uclibc.tar.xz]="8eb6ed069f20aada0bd3d3050a48b3dcd24ec742ce073d4ab4d58d16f5f77891"
+  [microblazeel-xilinx-linux-uclibc.tar.xz]="84bacb532af1d708e50f5f14e9d57b17ebeff24a8e2a65f8da722f4672a232be"
+  [mips-unknown-linux-uclibc.tar.xz]="489152b7889e3597ba5e6d6db01664c6b62cc68407c45fe3622f5280b4f779e4"
+  [mips-unknown-linux-uclibcsf.tar.xz]="f469f9c000117e0d1fdcb1128f53ee3e50f507c1b82fbe40e3266d2588e0232a"
+  [mips64-unknown-linux-uclibc.tar.xz]="3ca12402eb7b66c624763d476e751d01813b1711a0765e520dd8bc62445925f8"
+  [mips64el-unknown-linux-uclibc.tar.xz]="f7a4efb3793a0fb64fbb10646d208946c8bed40423daee242b3e2385d80092eb"
+  [mipsel-unknown-linux-uclibc.tar.xz]="fbfe36b6dc685ecd405510390b5c475bdb5f2bf846079f5048e23734c5250076"
+  [mipsel-unknown-linux-uclibcsf.tar.xz]="ae0d04d52ba6819b69797ad9bb47fb781829f4093a0841a67da1b72ae2f303d8"
+  [or1k-unknown-linux-uclibc.tar.xz]="337f38686f2b966c5c3458471e993ddae27b004ab1f53acc15d28579f5b32f73"
+  [powerpc-unknown-linux-uclibc.tar.xz]="f69e9586448320cfa7fe6d2b9bd2cfcb07677f92fec86d36dae49c3d2bf43350"
+  [powerpc-unknown-linux-uclibcsf.tar.xz]="5b4c1fa8aea992dd24b217feb0760fc1083be5dde14e72b5587a716eda53de37"
+  [powerpcle-unknown-linux-uclibc.tar.xz]="11d72990861bad74c8a39f09ec6f7afc9ed7a23d30458c2810b42bbd6bb6c346"
+  [powerpcle-unknown-linux-uclibcsf.tar.xz]="e46cff38dfe51834fd4f84cd8a0410194cdec1e25ff3106caa42e497546c5d3e"
+  [riscv32-unknown-linux-uclibc.tar.xz]="b6da114df4e3ba1beb2b4ad115386db6f8394ee8800d50af355e73b05e1a887e"
+  [riscv64-unknown-linux-uclibc.tar.xz]="67c21bff978b76d1d3d96874368474d017517bbe949826f0ca5706329eaceaff"
+  [sh4-multilib-linux-uclibc.tar.xz]="22eba0333fb7e78edcf17120896dd65a0105cb9b0711dc12059c993b34610efe"
+  [sparc-unknown-linux-uclibc.tar.xz]="7d6431cacc0445c7ff09c7fd72e2a1c144b2a2285b89f74a5983ffd4250650f3"
+  [x86_64-unknown-linux-uclibc.tar.xz]="6cffc7db5d87d5631235199e9864f7ccba1d65895b98c7d2c46f146968c6aeb7"
+)
+
+declare -A HASHES_WIN=(
+  [aarch64-w64-mingw32.tar.xz]="047ac3c19777c13d9023aad9414b1140067d309f98d59cab9c5e9e1eed1b02cb"
+  [armv7-w64-mingw32.tar.xz]="4495e719dd2ef9f2e9d5e2e85c9778f814dc17bf1c44a25a9f9e54232d32665f"
+  [i686-w64-mingw32.tar.xz]="01f51db17308988ce6aa994f7fb180ab573ea5fc74cf0afd05b53ddfd9fe02bb"
+  [x86_64-w64-mingw32.tar.xz]="e4a5d08c7979d710399fe17f69c944b2f969fa7ca51758b763534ec32c525a63"
 )
 
 NAME=$(basename "$0" | cut -d'-' -f2 | cut -d'.' -f1)
@@ -210,7 +218,8 @@ CXXFLAGS="-Os"
 GCC_RELEASE_BASE="https://github.com/gfunkmonk/musl-cross/releases/download/emotion"
 CLANG_RELEASE_BASE="https://github.com/gfunkmonk/clang-cross/releases/download/weakness"
 GNU_RELEASE_BASE="https://github.com/gfunkmonk/gnu-cross/releases/download/pizza"
-UCLIBC_RELEASE_BASE="https://github.com/gfunkmonk/uclibc-cross/releases/download/supermarket"
+UCLIBC_RELEASE_BASE="https://github.com/gfunkmonk/uclibc-cross/releases/download/baseball"
+WIN_RELEASE_BASE="https://github.com/gfunkmonk/win-cross/releases/download/Hydra"
 RELEASE_BASE="$GCC_RELEASE_BASE"
 
 # ── Common Helpers ────────────────────────────────────────────────────────────
@@ -227,6 +236,9 @@ set_compiler() {
         COMPILER_BIN="gcc"
     elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
         RELEASE_BASE="$UCLIBC_RELEASE_BASE"
+        COMPILER_BIN="gcc"
+    elif [[ "$COMPILER_TYPE" == "win" ]]; then
+        RELEASE_BASE="$WIN_RELEASE_BASE"
         COMPILER_BIN="gcc"
     else
         RELEASE_BASE="$CLANG_RELEASE_BASE"
@@ -247,6 +259,7 @@ parse_common_flag() {
         --clang)     set_compiler clang;  COMMON_SHIFT=1; return 0 ;;
         --gnu)       set_compiler gnu;    COMMON_SHIFT=1; return 0 ;;
         --uclibc)    set_compiler uclibc; COMMON_SHIFT=1; return 0 ;;
+        --win)       set_compiler win;    COMMON_SHIFT=1; return 0 ;;
         -r|--resume) RESUME_MODE=true;    COMMON_SHIFT=1; return 0 ;;
         -j|--jobs)   JOBS="$2";           COMMON_SHIFT=2; return 0 ;;
         -a|--arch)   USER_ARCHS="$2";     COMMON_SHIFT=2; return 0 ;;
@@ -356,6 +369,8 @@ verify_hash() {
         expected="${HASHES_GNU[$tarball]}"
     elif [[ "$COMPILER_TYPE" == "uclibc" ]]; then
         expected="${HASHES_UCLIBC[$tarball]}"
+    elif [[ "$COMPILER_TYPE" == "win" ]]; then
+        expected="${HASHES_WIN[$tarball]}"
     else
         expected="${HASHES_CLANG[$tarball]}"
     fi
@@ -510,6 +525,18 @@ verify_binary_arch() {
 
     local arch="${triple%%-*}"
     local expected
+    if [[ "$COMPILER_TYPE" == "win" ]]; then
+    local machine; machine=$(file "$bin" 2>/dev/null)
+    case "$arch" in
+        aarch64)       expected="PE32+ executable for MS Windows 5.02 (console), aarch64" ;;
+        armv7)         expected="PE32+ executable for MS Windows 5.02 (console), armv7" ;;
+        x86_64)        expected="PE32+ executable for MS Windows 5.02 (console), x86-64" ;;
+        i686)          expected="PE32+ executable for MS Windows 5.02 (console), i686" ;;
+        *)
+            echo -e "${SLATE}  (no arch mapping for '$arch' — skipping verification)${NC}"
+            return 0 ;;
+    esac
+    else
     case "$arch" in
         aarch64)               expected="AArch64" ;;
         armv[5-7]|arm)         expected="ARM" ;;
@@ -526,7 +553,7 @@ verify_binary_arch() {
         m68k)                  expected="Motorola m68k" ;;
         sh4)                   expected="Renesas / SuperH SH" ;;
         or1k)                  expected="OpenRISC" ;;
-        sparc)		 expected="Sparc v8" ;;
+        sparc)                 expected="Sparc v8" ;;
         sparc64)               expected="Sparc v9" ;;
         hppa)                  expected="HPPA" ;;
         alpha*)                expected="Alpha" ;;
@@ -534,6 +561,7 @@ verify_binary_arch() {
             echo -e "${SLATE}  (no arch mapping for '$arch' — skipping verification)${NC}"
             return 0 ;;
     esac
+    fi
 
     if [[ "$machine" == *"$expected"* ]]; then
         echo -e "${NEONGREEN}👌 arch verified:${NC} ${GOLDENROD}$machine${NC}"

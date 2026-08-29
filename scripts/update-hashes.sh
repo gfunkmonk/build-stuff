@@ -7,6 +7,7 @@ GCC_REPO="gfunkmonk/musl-cross"
 CLANG_REPO="gfunkmonk/clang-cross"
 GNU_REPO="gfunkmonk/gnu-cross"
 UCLIBC_REPO="gfunkmonk/uclibc-cross"
+WIN_REPO="gfunkmonk/win-cross"
 
 fetch_hashes() {
     local repo="$1"
@@ -18,7 +19,7 @@ fetch_hashes() {
         | awk -F'|' '{
             gsub(/ /,"",$2);
             gsub(/ /,"",$3);
-            if ($2 ~ /\.tar\.xz$/ && length($3) == 64)
+            #if ($2 ~ /\.tar\.xz$/ && length($3) == 64)
                 print "  ["$2"]=\""$3"\""
           }'
 }
@@ -56,8 +57,8 @@ replace_table() {
 }
 
 usage() {
-    echo "Usage: $0 --gcc-tag <tag> --clang-tag <tag> --gnu-tag <tag> --uclibc-tag <tag>"
-    echo "Example: $0 --gcc-tag airport --clang-tag croutons --gnu-tag gnutella --uclibc-tag pretzles"
+    echo "Usage: $0 --gcc-tag <tag> --clang-tag <tag> --gnu-tag <tag> --uclibc-tag <tag> --win-tag <tag>"
+    echo "Example: $0 --gcc-tag airport --clang-tag croutons --gnu-tag gnutella --uclibc-tag pretzles --win-tag cmd.exe"
     exit 1
 }
 
@@ -65,18 +66,20 @@ GCC_TAG=""
 CLANG_TAG=""
 GNU_TAG=""
 UCLIBC_TAG=""
+WIN_TAG=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --gcc-tag)   GCC_TAG="$2";   shift 2 ;;
-        --clang-tag) CLANG_TAG="$2"; shift 2 ;;
-        --gnu-tag)   GNU_TAG="$2";   shift 2 ;;
-        --uclibc-tag)   UCLIBC_TAG="$2";   shift 2 ;;
+        --gcc-tag)    GCC_TAG="$2";    shift 2 ;;
+        --clang-tag)  CLANG_TAG="$2";  shift 2 ;;
+        --gnu-tag)    GNU_TAG="$2";    shift 2 ;;
+        --uclibc-tag) UCLIBC_TAG="$2"; shift 2 ;;
+        --win-tag)    WIN_TAG="$2";    shift 2 ;;
         *) usage ;;
     esac
 done
 
-[[ -z "$GCC_TAG" || -z "$CLANG_TAG" || -z "$GNU_TAG" || -z "$UCLIBC_TAG" ]] && usage
+[[ -z "$GCC_TAG" || -z "$CLANG_TAG" || -z "$GNU_TAG" || -z "$UCLIBC_TAG" || -z "$WIN_TAG" ]] && usage
 
 echo "Fetching GCC hashes from release: $GCC_TAG"
 GCC_BLOCK=$(build_table "HASHES_GCC" "$GCC_REPO" "$GCC_TAG")
@@ -86,6 +89,8 @@ echo "Fetching GNU hashes from release: $GNU_TAG"
 GNU_BLOCK=$(build_table "HASHES_GNU" "$GNU_REPO" "$GNU_TAG")
 echo "Fetching UCLIBC hashes from release: $UCLIBC_TAG"
 UCLIBC_BLOCK=$(build_table "HASHES_UCLIBC" "$UCLIBC_REPO" "$UCLIBC_TAG")
+echo "Fetching WIN hashes from release: $WIN_TAG"
+WIN_BLOCK=$(build_table "HASHES_WIN" "$WIN_REPO" "$WIN_TAG")
 
 echo "Updating $COMMON_SH..."
 # We pass the tag now so the function knows what to put in the URL
@@ -93,5 +98,6 @@ replace_table "HASHES_GCC"   "$GCC_BLOCK"   "$GCC_TAG"
 replace_table "HASHES_CLANG" "$CLANG_BLOCK" "$CLANG_TAG"
 replace_table "HASHES_GNU" "$GNU_BLOCK" "$GNU_TAG"
 replace_table "HASHES_UCLIBC" "$UCLIBC_BLOCK" "$UCLIBC_TAG"
+replace_table "HASHES_WIN" "$WIN_BLOCK" "$WIN_TAG"
 
 echo "Done. Verify with: grep -E 'RELEASE_BASE|declare -A HASHES' $COMMON_SH"

@@ -59,6 +59,7 @@ declare_arch_info() {
     declare -gA ARCH_INFO=(
       [arm]="arm-unknown-linux-uclibcgnueabi:arm"
       [armhf]="arm-unknown-linux-uclibcgnueabihf:arm"
+      [alpha]="alpha-unknown-linux-uclibc:alpha"
       [armv4t]="armv4t-unknown-linux-uclibcgnueabi:armv4t"
       [armv5]="armv5-unknown-linux-uclibcgnueabi:armv5"
       [armv6]="armv6-unknown-linux-uclibcgnueabi:arm"
@@ -95,8 +96,6 @@ declare_arch_info() {
       [aarch64]="aarch64-unknown-linux-gnu:aarch64"
       [aarch64_be]="aarch64_be-unknown-linux-gnu:aarch64_be"
       [alpha]="alpha-unknown-linux-gnu:alpha"
-      #[alphaev56]="alphaev56-unknown-linux-gnu:alpha"
-      #[alphaev67]="alphaev67-unknown-linux-gnu:alpha"
       [arm]="arm-unknown-linux-gnueabi:arm"
       [armhf]="arm-unknown-linux-gnueabihf:arm"
       [armv4t]="armv4t-unknown-linux-gnueabi:arm"
@@ -172,6 +171,12 @@ declare_arch_info() {
       [s390x]="s390x-ibm-linux-musl:s390x"
       [sh4]="sh4-multilib-linux-musl:sh4"
       [x86_64]="x86_64-unknown-linux-musl:x86_64")
+  elif [[ "$COMPILER_TYPE" == "win" ]]; then
+    declare -gA ARCH_INFO=(
+      [aarch64]="aarch64-w64-mingw32:aarch64"
+      [armv7]="armv7-w64-mingw32:armv7"
+      [i686]="i686-w64-mingw32:i686"
+      [x86_64]="x86_64-w64-mingw32:x86_64")
   fi
 }
 
@@ -271,7 +276,11 @@ build_arch() {
 
     IFS=: read -r triple cmake_proc <<<"$info"
     local tarball="${triple}.tar.xz"
-    local out_file="$OUTPUT_DIR/$NAME-$arch_key"
+    if [[ "$COMPILER_TYPE" == "win" ]]; then
+         local out_file="$OUTPUT_DIR/$NAME-$arch_key.exe"
+    else
+         local out_file="$OUTPUT_DIR/$NAME-$arch_key"
+    fi
     local log_file="$ROOT_DIR/build-$arch_key.log"
 
     echo -e "${NEONPURPLE}💠────────────────────────────────────────────────────────────💠${NC}"
@@ -340,8 +349,10 @@ build_arch() {
 	fi
     elif [[ "$arch_key" == "loongarch64" ]]; then
 	arch_ldflags="-Wl,--strip-debug"
-    #elif [[ "$arch_key" == "m68k" ]]; then
-	#arch_ldflags="-fuse-ld=$bin_dir/ld.lld"
+    elif [[ "$arch_key" == "alpha" ]]; then
+	arch_cflags="$CFLAGS -mcpu=ev67 -mieee -fno-stack-protector"
+	arch_cxxflags="$CXXFLAGS -mcpu=ev67 -mieee -fno-stack-protector"
+	arch_ldflags="-Wl,--no-check-sections -fno-use-linker-plugin"
     elif [[ "$arch_key" == alphaev* ]]; then
 	arch_cflags="$CFLAGS -fno-stack-protector"
 	arch_cxxflags="$CXXFLAGS -fno-stack-protector"
@@ -350,9 +361,15 @@ build_arch() {
     # 4. Compile with Error Logging
     echo -n -e "${SLATE}==>${NC} Configuring CMake... "
 
+    if [[ "$COMPILER_TYPE" == "win" ]]; then
+         SYSNAME="Windows"
+    else
+         SYSNAME="Linux"
+    fi
+
     if cmake -S "$SOURCE_DIR" -B "$bdir" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_SYSTEM_NAME=Linux \
+        -DCMAKE_SYSTEM_NAME="$SYSNAME" \
         -DCMAKE_SYSTEM_PROCESSOR="$cmake_proc" \
         -DCMAKE_C_COMPILER="$bin_dir/${triple}-${COMPILER_BIN}" \
         -DCMAKE_CXX_COMPILER="$bin_dir/${triple}-$([[ "$COMPILER_BIN" == "gcc" ]] && echo "g++" || echo "clang++")" \
@@ -386,7 +403,11 @@ build_arch() {
     track_progress $! "$log_file" "cmake" 100 "${SKY}"
 
     # 5. Finalize
-    local bin_found; bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
+    if [[ "$COMPILER_TYPE" == "win" ]]; then
+         local bin_found; bin_found=$(find "$bdir" -name upx.exe -type f -executable | head -n1)
+    else
+         local bin_found; bin_found=$(find "$bdir" -name upx -type f -executable | head -n1)
+    fi
     if [[ -z "$bin_found" ]]; then
         echo -e "${TOMATO}Error: Binary not found after successful build!${NC}"
         return 1
@@ -411,6 +432,7 @@ show_help() {
     echo -e "  ${NEONBLUE}--clang${NC}             Use Clang toolchains"
     echo -e "  ${NEONBLUE}--gnu${NC}               Use GNU GCC toolchains (glibc)"
     echo -e "  ${NEONBLUE}--uclibc${NC}            Use uCibc-ng toolchains"
+    echo -e "  ${NEONBLUE}--win${NC}            Use mingw32 toolchains"
     echo -e "  ${NEONBLUE}-a|--arch \"LIST\"${NC}    Space-separated list of arches to build"
     echo -e "  ${NEONBLUE}-r|--resume${NC}         Skip targets already found in output/"
     echo -e "  ${NEONBLUE}-j|--jobs N${NC}         Parallel make jobs (default: auto-detected)"
@@ -436,10 +458,11 @@ show_help() {
 # compiler's table before parse_common_flag handles --list-archs.
 for _arg in "$@"; do
     case "$_arg" in
-        --gcc)   set_compiler gcc ;;
-        --clang) set_compiler clang ;;
-        --gnu)   set_compiler gnu ;;
-        --uclibc)   set_compiler uclibc ;;
+        --gcc)    set_compiler gcc ;;
+        --clang)  set_compiler clang ;;
+        --gnu)    set_compiler gnu ;;
+        --uclibc) set_compiler uclibc ;;
+        --win)    set_compiler win ;;
     esac
 done
 
